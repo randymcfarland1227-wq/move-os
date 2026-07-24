@@ -8,11 +8,21 @@ export interface MoveRepository {
 }
 
 const KEY = "move-os-v1";
+const migrate = (stored: MoveData): MoveData => {
+  if (stored.schemaVersion >= 2 && stored.moveFund) return stored;
+  return {
+    ...stored,
+    schemaVersion: 2,
+    profile: {...stored.profile, targetMoveDate:"2026-10-24", backupDate:"2026-10-31"},
+    moveFund: structuredClone(seedData.moveFund),
+    money: structuredClone(seedData.money),
+  };
+};
 export class LocalMoveRepository implements MoveRepository {
   async load() {
     if (typeof window === "undefined") return seedData;
     const stored = window.localStorage.getItem(KEY);
-    return stored ? JSON.parse(stored) as MoveData : structuredClone(seedData);
+    return stored ? migrate(JSON.parse(stored) as MoveData) : structuredClone(seedData);
   }
   async save(data: MoveData) { window.localStorage.setItem(KEY, JSON.stringify(data)); }
   async clear() { window.localStorage.removeItem(KEY); }

@@ -15,12 +15,20 @@ export interface MoveProfile {
   phase: string; currentUnlock: string; protectedMonth: boolean;
 }
 
-export interface MoneyBucket { id: string; label: string; current: number; target: number; included: string; uncertain?: string; }
+export type KnowledgeStatus = "Known" | "Estimate" | "Need to think" | "Need information" | "Waiting on event" | "Decided" | "Not applicable";
+export interface MoveFund {
+  current: number; workingTarget: number; fullTarget: number;
+  status: KnowledgeStatus; source: string; confirmedAt: string;
+}
+export interface MoneyBucket {
+  id: string; label: string; current: number; target: number; included: string;
+  status: KnowledgeStatus; source: string; uncertain?: string;
+}
 export interface EmploymentRoute { id: string; name: string; subtitle: string; active: boolean; status: string; details: string[]; }
 export interface VaultEntry { id: string; title: string; category: string; url: string; date: string; notes: string; }
 export interface Reflection { id: string; prompt: string; value: string; }
 
 export interface MoveData {
-  profile: MoveProfile; items: MoveItem[]; money: MoneyBucket[];
+  schemaVersion: number; profile: MoveProfile; items: MoveItem[]; moveFund: MoveFund; money: MoneyBucket[];
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
 }

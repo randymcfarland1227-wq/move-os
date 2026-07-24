@@ -28,6 +28,7 @@ npm test
 - Dependency-aware items with plain-language blockers
 - Clear, Build, Become, Vault, and Settings areas
 - Employment routes, move-money buckets, Move Day timeline, and protected first month
+- Workbook-traceable financial buckets with explicit Known, Estimate, Need to think, Need information, Waiting on event, Decided, and Not applicable states
 - Create, edit, settle, and delete items
 - Light and dark themes
 - Local browser persistence

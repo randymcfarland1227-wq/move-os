@@ -7,9 +7,10 @@ const item = (partial: Partial<MoveItem> & Pick<MoveItem, "id" | "title" | "area
 });
 
 export const seedData: MoveData = {
+  schemaVersion: 2,
   profile: {
     reason: "I’m moving toward a life with more privacy, creativity, nature, meaningful connection, and financial peace.",
-    destination: "A city that feels like room to breathe", targetMoveDate: "2027-05-15", backupDate: "2027-07-01",
+    destination: "A city that feels like room to breathe", targetMoveDate: "2026-10-24", backupDate: "2026-10-31",
     phase: "Foundation", currentUnlock: "Confirm whether my current role can become fully remote.", protectedMonth: true,
   },
   items: [
@@ -30,13 +31,18 @@ export const seedData: MoveData = {
     item({ id:"music", title:"Find one music space to visit", description:"A low-pressure door to knock on after arrival.", area:"Become", section:"Community and Belonging", priority:"Relief", timing:"After arrival" }),
     item({ id:"tuesday", title:"Describe an ordinary Tuesday", description:"Write what work, rest, movement, and connection feel like.", area:"Become", section:"My Fuel Source", status:"In motion", priority:"Relief", timing:"Now" }),
   ],
+  moveFund: {
+    current:1500, workingTarget:3600, fullTarget:5800, status:"Known",
+    source:"Randall.xlsx · confirmed balance", confirmedAt:"2026-07-24",
+  },
   money: [
-    { id:"saved", label:"Current move savings", current:7200, target:12000, included:"Cash reserved only for the move", uncertain:"Final destination costs" },
-    { id:"deposit", label:"Deposit + first month", current:3200, target:4800, included:"Estimated deposit and first month" },
-    { id:"fees", label:"Application fees", current:300, target:500, included:"Applications and admin fees" },
-    { id:"pet", label:"Dog costs", current:450, target:800, included:"Deposit, travel, first supplies" },
-    { id:"move", label:"Physical move", current:900, target:1800, included:"Vehicle, fuel, helpers, supplies" },
-    { id:"cushion", label:"Protected cushion", current:2350, target:4100, included:"Post-move breathing room", uncertain:"First paycheck timing" },
+    { id:"lease", label:"Lease & move-in", current:0, target:3450, included:"Down payment, first month, application fee, utility deposit", status:"Estimate", source:"Move Sav COG Estimate · B4:B7 + D4", uncertain:"Actual lease terms" },
+    { id:"move", label:"Physical move", current:0, target:150, included:"Truck rental or shipping", status:"Estimate", source:"Move Sav COG Estimate · D3", uncertain:"Moving method and quotes" },
+    { id:"loose", label:"Essential loose ends", current:0, target:0, included:"Only liabilities that affect safety, legality, or rental readiness", status:"Need to think", source:"Credit Matrix + Non-Credit", uncertain:"Which obligations must clear before moving" },
+    { id:"health", label:"Health preparation", current:0, target:0, included:"Medical, dental, prescriptions, records, and dog preparation", status:"Need information", source:"RestockPurchases · health and dog rows", uncertain:"Appointments and provider guidance" },
+    { id:"home", label:"Home essentials", current:0, target:0, included:"First 72 hours and first-month essentials only", status:"Need to think", source:"RestockPurchases + Watchlist", uncertain:"Apartment measurements and what to bring" },
+    { id:"cushion", label:"Protected cushion", current:0, target:2200, included:"One rent month, two utility cycles, and two car/insurance cycles", status:"Estimate", source:"Move Sav COG Estimate · E3:F7", uncertain:"First-paycheck timing" },
+    { id:"travel", label:"Holiday & travel", current:0, target:0, included:"Visits, holidays, and post-move travel commitments", status:"Need information", source:"RestockPurchases + Paylater", uncertain:"Dates, purpose, and expected costs" },
   ],
   routes: [
     { id:"r1", name:"Stay & go fully remote", subtitle:"Preferred route", active:true, status:"Exploring policy", details:["Research policy","Prepare remote-work case","Choose conversation date","Get written approval","Confirm employment verification"] },
