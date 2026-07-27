@@ -9,13 +9,23 @@ export interface MoveRepository {
 
 const KEY = "move-os-v1";
 const migrate = (stored: MoveData): MoveData => {
-  if (stored.schemaVersion >= 2 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 3 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 2 && stored.moveFund) {
+    const seededById = new Map(seedData.items.map(item => [item.id,item]));
+    const retained = stored.items.filter(item => !seededById.has(item.id));
+    return {
+      ...stored, schemaVersion:3,
+      profile:{...stored.profile,currentUnlock:seedData.profile.currentUnlock},
+      items:[...seedData.items,...retained],
+    };
+  }
   return {
     ...stored,
-    schemaVersion: 2,
+    schemaVersion: 3,
     profile: {...stored.profile, targetMoveDate:"2026-10-24", backupDate:"2026-10-31"},
     moveFund: structuredClone(seedData.moveFund),
     money: structuredClone(seedData.money),
+    items: structuredClone(seedData.items),
   };
 };
 export class LocalMoveRepository implements MoveRepository {

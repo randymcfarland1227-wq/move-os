@@ -24,6 +24,9 @@ npm test
 ## Version 1
 
 - Today dashboard with deterministic Clear, Build, and Become recommendations
+- Central Move Map organized by life stream and move phase
+- Parent projects with editable subtasks and calm completion summaries
+- Explicit relationship types, including true blockers, parallel work, decision gates, and deferred decisions
 - Supportive overwhelmed mode
 - Dependency-aware items with plain-language blockers
 - Clear, Build, Become, Vault, and Settings areas

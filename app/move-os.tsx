@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Area, MoveData, MoveItem, Status, Timing, VaultEntry } from "./types";
+import type { Area, KnowledgeStatus, MoveData, MoveItem, MoveStage, MoveStream, RelationshipType, Status, Timing, VaultEntry } from "./types";
 import { moveRepository } from "./repository";
 import { blocker, isDone, recommendations } from "./priorities";
 
-type Page = "Today" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
+type Page = "Today" | "Map" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
 const pages: {name:Page; icon:string}[] = [
-  {name:"Today",icon:"⌂"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},
+  {name:"Today",icon:"⌂"},{name:"Map",icon:"⌘"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},
   {name:"Become",icon:"✦"},{name:"Vault",icon:"□"},{name:"Settings",icon:"○"},
 ];
 const sectionCopy: Record<string,string> = {
@@ -30,6 +30,10 @@ const areaSections: Record<Area,string[]> = {
 };
 const statuses:Status[] = ["Not started","In motion","Waiting","Blocked","Good enough","Secure","Settled","Carry forward","Released"];
 const timings:Timing[] = ["Now","Prepare early","After the lease","First 72 hours","After arrival","Allowed to wait"];
+const stages:MoveStage[]=["Foundation","Prepare","Decide","Commit","Move","Land"];
+const streams:MoveStream[]=["Income","Housing","Money","Clear","Health & dog","Become"];
+const relationships:RelationshipType[]=["Hard dependency","Helpful sequence","Parallel","Decision gate","Deferred decision","Waiting on event","Informational"];
+const knowledgeStatuses:KnowledgeStatus[]=["Known","Estimate","Need to think","Need information","Waiting on event","Decided","Not applicable"];
 
 function Logo() { return <div className="logo"><span>m</span><strong>Move OS</strong></div>; }
 function Button({children, onClick, kind="secondary", type="button"}:{children:React.ReactNode;onClick?:()=>void;kind?:string;type?:"button"|"submit"}) {
@@ -58,6 +62,7 @@ export function MoveOS() {
     <main>
       <header className="topbar"><Logo/><button className="phase-pill"><i/> {data.profile.phase}</button></header>
       {page==="Today" && <Today data={data} update={update} overwhelmed={overwhelmed} setOverwhelmed={setOverwhelmed} edit={setEditing}/>}
+      {page==="Map" && <MoveMap data={data} update={update} edit={setEditing}/>}
       {(page==="Clear"||page==="Build"||page==="Become") && <AreaPage area={page} data={data} update={update} edit={setEditing}/>}
       {page==="Vault" && <Vault data={data} update={update}/>}
       {page==="Settings" && <Settings data={data} update={update} dark={dark} setDark={setDark} fileRef={fileRef}/>}
@@ -91,7 +96,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit}:{data:MoveData;upda
       <div><p className="eyebrow">GOOD MORNING · {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"})}</p><h1>You’re not moving all at once.<br/><em>You’re building the way there.</em></h1></div>
       <div className="move-date"><small>TARGET MOVE</small><strong>{new Date(data.profile.targetMoveDate+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</strong><span>{days} days · backup {new Date(data.profile.backupDate+"T12:00").toLocaleDateString("en-US",{month:"short",year:"numeric"})}</span></div>
     </div>
-    <section className="unlock"><div className="unlock-mark">↗</div><div><span>CURRENT UNLOCK</span><h2>{data.profile.currentUnlock}</h2><p>This answer makes income—and the housing plan behind it—more trustworthy.</p></div><Button kind="ink" onClick={()=>edit(data.items.find(i=>i.id==="remote-policy")!)}>Continue <b>→</b></Button></section>
+    <section className="unlock"><div className="unlock-mark">↗</div><div><span>CURRENT UNLOCK</span><h2>{data.profile.currentUnlock}</h2><p>This work supports several possible paths. The final job choice can stay intentionally deferred.</p></div><Button kind="ink" onClick={()=>edit(data.items.find(i=>i.id==="rental-ready")!)}>Continue <b>→</b></Button></section>
     <div className="section-heading"><div><p className="eyebrow">A BALANCED DAY</p><h2>Three things that matter now</h2></div><p>One from each part of the life you’re tending.</p></div>
     <div className="suggestions">{suggested.map((item,index)=><ActionCard key={item.id} item={item} number={index+1} edit={edit} data={data} update={update}/>)}</div>
     <div className="lower-grid">
@@ -107,6 +112,34 @@ function ActionCard({item,number,edit,data,update}:{item:MoveItem;number:number;
   const colors={Clear:"coral",Build:"sage",Become:"lavender",Vault:"sand"};
   return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Settled",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Settle ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
 }
+
+function MoveMap({data,update,edit}:{data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
+  const parents=data.items.filter(item=>!item.parentId);
+  const add=(stage:MoveStage,stream:MoveStream)=>edit({id:crypto.randomUUID(),title:"",description:"",area:stream==="Become"?"Become":stream==="Clear"?"Clear":"Build",section:stream,status:"Not started",priority:"Relief",timing:"Now",stage,stream,relationship:"Parallel",knowledgeStatus:"Need to think",createdAt:new Date().toISOString().slice(0,10),updatedAt:new Date().toISOString().slice(0,10)});
+  return <div className="page map-page">
+    <p className="eyebrow">THE WHOLE MOVE, IN RELATIONSHIP</p><div className="map-intro"><div><h1>Your Move Map.</h1><p className="lede">See what can move now, what comes later, and what truly depends on something else.</p></div><div className="map-key"><span><i className="rel parallel"/>Parallel</span><span><i className="rel deferred"/>Deferred choice</span><span><i className="rel hard"/>True blocker</span></div></div>
+    <section className="truth-note"><b>Nothing here is automatically true.</b><span>Each card carries a knowledge label, and only a hard dependency can block another step.</span></section>
+    <div className="matrix-wrap"><div className="move-matrix">
+      <div className="matrix-corner"><small>LIFE STREAM</small></div>{stages.map((stage,index)=><div className="stage-head" key={stage}><small>0{index+1}</small><b>{stage}</b></div>)}
+      {streams.map(stream=><MatrixRow key={stream} stream={stream} stages={stages} items={parents} data={data} update={update} edit={edit} add={add}/>)}
+    </div></div>
+    <section className="relationship-guide"><h2>How the map reads</h2><div>{relationships.map(r=><article key={r}><i className={`rel ${relationClass(r)}`}/><b>{r}</b><p>{relationExplanation(r)}</p></article>)}</div></section>
+  </div>;
+}
+
+function MatrixRow({stream,stages,items,data,update,edit,add}:{stream:MoveStream;stages:MoveStage[];items:MoveItem[];data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void;add:(s:MoveStage,r:MoveStream)=>void}) {
+  return <><div className="stream-head"><span>{streamIcon(stream)}</span><b>{stream}</b></div>{stages.map(stage=><div className="matrix-cell" key={`${stream}-${stage}`}>{items.filter(i=>i.stream===stream&&i.stage===stage).map(item=><MapCard key={item.id} item={item} children={data.items.filter(i=>i.parentId===item.id)} data={data} update={update} edit={edit}/>)}<button className="matrix-add" onClick={()=>add(stage,stream)} aria-label={`Add to ${stream}, ${stage}`}>＋</button></div>)}</>;
+}
+
+function MapCard({item,children,data,update,edit}:{item:MoveItem;children:MoveItem[];data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
+  const complete=children.filter(isDone).length;
+  const setStatus=(child:MoveItem)=>update({...data,items:data.items.map(i=>i.id===child.id?{...i,status:isDone(i)?"Not started":"Settled"}:i)});
+  return <details className={`map-card ${relationClass(item.relationship)}`}><summary><div className="map-card-top"><span>{item.knowledgeStatus}</span><i className={`rel ${relationClass(item.relationship)}`}/></div><h3>{item.title}</h3>{children.length>0&&<small>{complete} of {children.length} subtasks settled</small>}<div className="mini-track"><i style={{width:children.length?`${complete/children.length*100}%`:isDone(item)?"100%":"0%"}}/></div></summary><div className="map-card-body"><p>{item.description}</p><span className="relation-label">{item.relationship}</span>{blocker(item,data.items)&&<em>{blocker(item,data.items)}</em>}{children.map(child=><div className="subtask" key={child.id}><button onClick={()=>setStatus(child)}>{isDone(child)?"✓":"○"}</button><button onClick={()=>edit(child)}>{child.title}</button></div>)}<button className="edit-map-card" onClick={()=>edit(item)}>Open details →</button></div></details>;
+}
+
+const relationClass=(r?:RelationshipType)=>r==="Hard dependency"?"hard":r==="Deferred decision"?"deferred":r==="Decision gate"?"gate":r==="Waiting on event"?"waiting":r==="Helpful sequence"?"helpful":r==="Informational"?"info":"parallel";
+const relationExplanation=(r:RelationshipType)=>({ "Hard dependency":"This genuinely cannot happen first.","Helpful sequence":"Usually easier afterward, but still movable.","Parallel":"Can happen alongside other work.","Decision gate":"A choice is required before commitment.","Deferred decision":"Intentionally decide closer to when it matters.","Waiting on event":"The next move depends on outside information.","Informational":"Context that guides the plan, not a task." }[r]);
+const streamIcon=(s:MoveStream)=>({"Income":"$","Housing":"⌂","Money":"◒","Clear":"↗","Health & dog":"♡","Become":"✦"}[s]);
 
 function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
   const intro={
@@ -126,7 +159,7 @@ function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:Mov
       if(area==="Build"&&section==="Move Money") return <Money key={section} data={data} update={update}/>;
       if(area==="Build"&&section==="Post-Move Income") return <Routes key={section} data={data} update={update}/>;
       if(area==="Become"&&section==="Flowering Period: First 30 Days") return <Flowering key={section} data={data} update={update}/>;
-      const items=data.items.filter(i=>i.area===area&&i.section===section);
+      const items=data.items.filter(i=>i.area===area&&i.section===section&&!i.parentId);
       const locked=section==="Physical Move" && !data.items.some(i=>i.id==="lease"&&isDone(i));
       return <details className={`section-card ${locked?"locked":""}`} key={section} open={index<2&&!locked}>
         <summary><div><span>{locked?"LOCKED UNTIL LEASE":"0"+(index+1)}</span><h2>{section}</h2><p>{sectionCopy[section] || reflectiveCopy(section)}</p></div><i>⌄</i></summary>
@@ -173,5 +206,5 @@ function Settings({data,update,dark,setDark,fileRef}:{data:MoveData;update:(d:Mo
 
 function ItemModal({item,all,onClose,onSave,onDelete}:{item:MoveItem;all:MoveItem[];onClose:()=>void;onSave:(i:MoveItem)=>void;onDelete:()=>void}) {
   const [draft,setDraft]=useState(item);
-  return <div className="modal-backdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}><form className="modal" onSubmit={e=>{e.preventDefault();onSave({...draft,updatedAt:new Date().toISOString().slice(0,10)})}}><div className="modal-head"><div><span>{draft.area} · {draft.section}</span><h2>{item.title?"Edit this piece":"Add something"}</h2></div><button type="button" onClick={onClose}>×</button></div><label>Title<input autoFocus required value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/></label><label>Description<textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})}/></label><div className="form-grid"><label>Status<select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value as Status})}>{statuses.map(s=><option key={s}>{s}</option>)}</select></label><label>Timing<select value={draft.timing} onChange={e=>setDraft({...draft,timing:e.target.value as Timing})}>{timings.map(t=><option key={t}>{t}</option>)}</select></label></div><label>Depends on<select value={draft.dependency||""} onChange={e=>setDraft({...draft,dependency:e.target.value||undefined})}><option value="">Nothing — this can move now</option>{all.filter(i=>i.id!==draft.id).map(i=><option key={i.id} value={i.id}>{i.title}</option>)}</select></label>{blocker(draft,all)&&<p className="blocker">This stays quiet for now: {blocker(draft,all)}.</p>}<label>Notes<textarea value={draft.notes||""} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label><div className="modal-actions">{item.title&&<button type="button" className="delete" onClick={onDelete}>Delete</button>}<span/><Button onClick={onClose}>Cancel</Button><Button type="submit" kind="primary">Save</Button></div></form></div>;
+  return <div className="modal-backdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}><form className="modal" onSubmit={e=>{e.preventDefault();onSave({...draft,updatedAt:new Date().toISOString().slice(0,10)})}}><div className="modal-head"><div><span>{draft.area} · {draft.section}</span><h2>{item.title?"Edit this piece":"Add something"}</h2></div><button type="button" onClick={onClose}>×</button></div><label>Title<input autoFocus required value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/></label><label>Description<textarea value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})}/></label><div className="form-grid"><label>Status<select value={draft.status} onChange={e=>setDraft({...draft,status:e.target.value as Status})}>{statuses.map(s=><option key={s}>{s}</option>)}</select></label><label>Timing<select value={draft.timing} onChange={e=>setDraft({...draft,timing:e.target.value as Timing})}>{timings.map(t=><option key={t}>{t}</option>)}</select></label></div><div className="form-grid"><label>Move phase<select value={draft.stage||"Foundation"} onChange={e=>setDraft({...draft,stage:e.target.value as MoveStage})}>{stages.map(s=><option key={s}>{s}</option>)}</select></label><label>Life stream<select value={draft.stream||"Clear"} onChange={e=>setDraft({...draft,stream:e.target.value as MoveStream})}>{streams.map(s=><option key={s}>{s}</option>)}</select></label></div><div className="form-grid"><label>Relationship<select value={draft.relationship||"Parallel"} onChange={e=>setDraft({...draft,relationship:e.target.value as RelationshipType})}>{relationships.map(s=><option key={s}>{s}</option>)}</select></label><label>What do we know?<select value={draft.knowledgeStatus||"Need to think"} onChange={e=>setDraft({...draft,knowledgeStatus:e.target.value as KnowledgeStatus})}>{knowledgeStatuses.map(s=><option key={s}>{s}</option>)}</select></label></div><label>Part of a larger task<select value={draft.parentId||""} onChange={e=>setDraft({...draft,parentId:e.target.value||undefined})}><option value="">This is a main task or project</option>{all.filter(i=>i.id!==draft.id&&!i.parentId).map(i=><option key={i.id} value={i.id}>{i.title}</option>)}</select></label><label>Related dependency<select value={draft.dependency||""} onChange={e=>setDraft({...draft,dependency:e.target.value||undefined})}><option value="">Nothing — this can move now</option>{all.filter(i=>i.id!==draft.id).map(i=><option key={i.id} value={i.id}>{i.title}</option>)}</select></label>{blocker(draft,all)&&<p className="blocker">This is a true blocker: {blocker(draft,all)}.</p>}<label>Notes<textarea value={draft.notes||""} onChange={e=>setDraft({...draft,notes:e.target.value})}/></label><div className="modal-actions">{item.title&&<button type="button" className="delete" onClick={onDelete}>Delete</button>}<span/><Button onClick={onClose}>Cancel</Button><Button type="submit" kind="primary">Save</Button></div></form></div>;
 }

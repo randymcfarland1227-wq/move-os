@@ -2,11 +2,16 @@ export type Area = "Clear" | "Build" | "Become" | "Vault";
 export type Status = "Not started" | "In motion" | "Waiting" | "Blocked" | "Good enough" | "Secure" | "Settled" | "Carry forward" | "Released";
 export type Priority = "Safety" | "Money" | "Income" | "Housing" | "Deadline" | "Relief" | "Someday";
 export type Timing = "Now" | "Prepare early" | "After the lease" | "First 72 hours" | "After arrival" | "Allowed to wait";
+export type MoveStage = "Foundation" | "Prepare" | "Decide" | "Commit" | "Move" | "Land";
+export type MoveStream = "Income" | "Housing" | "Money" | "Clear" | "Health & dog" | "Become";
+export type RelationshipType = "Hard dependency" | "Helpful sequence" | "Parallel" | "Decision gate" | "Deferred decision" | "Waiting on event" | "Informational";
 
 export interface MoveItem {
   id: string; title: string; description: string; area: Area; section: string;
   status: Status; priority: Priority; dueDate?: string; cost?: number;
   dependency?: string; unlocks?: string[]; timing: Timing; notes?: string;
+  parentId?: string; stage?: MoveStage; stream?: MoveStream;
+  relationship?: RelationshipType; knowledgeStatus?: KnowledgeStatus;
   createdAt: string; updatedAt: string;
 }
 
