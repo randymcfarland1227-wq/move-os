@@ -22,6 +22,21 @@ const sectionCopy: Record<string,string> = {
   "Land Softly":"Prepare the future so arrival has room to breathe.",
   "Physical Move":"Logistics begin when there is a real address.",
 };
+const sectionReasoning: Record<string,{why:string;unlocks:string;permission:string}> = {
+  "Money, Credit and Old Obligations":{why:"Stops avoidable fees, legal trouble, or credit surprises from following you.",unlocks:"A cleaner rental application and a more honest move budget.",permission:"You only need to address what can cause harm or affect the move."},
+  "Car, Documents and Responsibilities":{why:"Safety and usable records protect the actual journey and your first weeks.",unlocks:"Reliable travel, applications, care continuity, and fewer arrival emergencies.",permission:"Cosmetic work and nonessential upgrades can wait."},
+  "Family: What I Can Help With":{why:"A defined role lets you offer real help without making the move depend on fixing another life.",unlocks:"A compassionate ending with a clear point where your part is complete.",permission:"Planning or connecting someone to support can be enough."},
+  "Closure Before I Leave":{why:"Intentional time and acknowledgment can reduce the feeling that you vanished from your own chapter.",unlocks:"More emotional room for arrival and new attachment.",permission:"Closure does not require another person’s participation."},
+  "Allowed to Wait":{why:"Naming non-blockers protects attention for the work that actually changes readiness.",unlocks:"A calmer plan with fewer false emergencies.",permission:"Waiting is a decision, not neglect."},
+  "Rental Readiness":{why:"Landlords decide from documents and requirements, so preparation prevents a rushed scramble.",unlocks:"Confident applications when the right apartment appears.",permission:"You can gather most documents before choosing the final income route."},
+  "Housing and Lease":{why:"The lease is the commitment point that turns a destination into a confirmed address.",unlocks:"Utilities, mover booking, measurements, and serious packing.",permission:"Explore now; commitment waits for enough verified information."},
+  "Land Softly":{why:"A little continuity planning protects your health, your dog, and your energy after arrival.",unlocks:"A first month focused on settling instead of preventable emergencies.",permission:"Prepare the essentials; optimize the new life later."},
+  "Physical Move":{why:"Logistics become accurate only after the address and move-in terms are real.",unlocks:"A coordinated Move Day and a functional first night.",permission:"Research is fine now. Booking and detailed execution can stay quiet."},
+  "The Life I Want":{why:"Practical choices become easier when you know how ordinary life should feel.",unlocks:"A useful filter for housing, work, spending, and time.",permission:"This is a direction, not a contract."},
+  "People and Relationships":{why:"Moving changes access and rhythm; intention helps important relationships survive the transition.",unlocks:"Clearer boundaries, appreciation, and ways to stay connected.",permission:"Not every relationship needs the same future shape."},
+  "Spiritual Preparation":{why:"Meaning-making can hold uncertainty that a checklist cannot resolve.",unlocks:"A personal sense of continuity and trust.",permission:"Nothing here is required or scored."},
+  "Community and Belonging":{why:"Belonging usually grows through repetition, not one dramatic introduction.",unlocks:"A few low-pressure doors to knock on after arrival.",permission:"You do not have to build a whole community immediately."},
+};
 const areaSections: Record<Area,string[]> = {
   Clear:["Money, Credit and Old Obligations","Car, Documents and Responsibilities","Family: What I Can Help With","Closure Before I Leave","Allowed to Wait"],
   Build:["Timeline","Move Money","Post-Move Income","Rental Readiness","Housing and Lease","Land Softly","Physical Move"],
@@ -110,7 +125,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit}:{data:MoveData;upda
 
 function ActionCard({item,number,edit,data,update}:{item:MoveItem;number:number;edit:(i:MoveItem)=>void;data:MoveData;update:(d:MoveData)=>void}) {
   const colors={Clear:"coral",Build:"sage",Become:"lavender",Vault:"sand"};
-  return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Settled",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Settle ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
+  return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="why-now"><small>WHY THIS NOW</small><span>{itemReason(item,data.items)}</span></div><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Settled",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Settle ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
 }
 
 function MoveMap({data,update,edit}:{data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
@@ -148,9 +163,16 @@ function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:Mov
     Become:["Keep the future alive.","This is not a scorecard. It’s a place to remember who you’re becoming."],
     Vault:["",""],
   }[area];
+  const compass={
+    Clear:{question:"What could create harm, drag, or unfinished responsibility?",focus:"Make the important loose ends finite.",permission:"You are not required to solve everything."},
+    Build:{question:"What makes the move more possible or more trustworthy?",focus:"Prepare evidence and options before commitment.",permission:"Many steps can move in parallel."},
+    Become:{question:"What kind of ordinary life are these logistics protecting?",focus:"Keep desire, identity, and belonging visible.",permission:"Reflection is nourishment, not homework."},
+    Vault:{question:"",focus:"",permission:""},
+  }[area];
   const add=(section:string)=>edit({id:crypto.randomUUID(),title:"",description:"",area,section,status:"Not started",priority:"Relief",timing:"Now",createdAt:new Date().toISOString().slice(0,10),updatedAt:new Date().toISOString().slice(0,10)});
   return <div className="page area-page">
     <p className="eyebrow">{area==="Build"?"THE PRACTICAL FOUNDATION":area==="Clear"?"CURRENT CHAPTER":"THE LIFE AHEAD"}</p><h1>{intro[0]}</h1><p className="lede">{intro[1]}</p>
+    <section className={`chapter-compass ${area.toLowerCase()}`}><div><small>THE QUESTION</small><p>{compass.question}</p></div><div><small>THE FOCUS</small><p>{compass.focus}</p></div><div><small>THE PERMISSION</small><p>{compass.permission}</p></div></section>
     {area==="Clear" && <blockquote className="grounding">I want to leave with love and responsibility, but I do not need to solve every problem before I am allowed to move forward.</blockquote>}
     {area==="Build" && <DependencyChain/>}
     {area==="Become" && <Fuel data={data} update={update}/>}
@@ -161,8 +183,10 @@ function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:Mov
       if(area==="Become"&&section==="Flowering Period: First 30 Days") return <Flowering key={section} data={data} update={update}/>;
       const items=data.items.filter(i=>i.area===area&&i.section===section&&!i.parentId);
       const locked=section==="Physical Move" && !data.items.some(i=>i.id==="lease"&&isDone(i));
+      const reason=sectionReasoning[section];
       return <details className={`section-card ${locked?"locked":""}`} key={section} open={index<2&&!locked}>
-        <summary><div><span>{locked?"LOCKED UNTIL LEASE":"0"+(index+1)}</span><h2>{section}</h2><p>{sectionCopy[section] || reflectiveCopy(section)}</p></div><i>⌄</i></summary>
+        <summary><div className="section-number"><span>{locked?"LOCKED":"0"+(index+1)}</span></div><div className="section-summary"><small>{locked?"WAITING FOR A REAL ADDRESS":sectionCopy[section] || reflectiveCopy(section)}</small><h2>{section}</h2>{reason&&<p><b>Why it belongs:</b> {reason.why}</p>}</div><i>⌄</i></summary>
+        {reason&&<div className="reason-strip"><div><small>THIS UNLOCKS</small><p>{reason.unlocks}</p></div><div><small>YOU DO NOT NEED TO</small><p>{reason.permission}</p></div></div>}
         <div className="section-body">{items.map(item=><ItemRow key={item.id} item={item} all={data.items} edit={edit}/>)}{!locked&&<button className="add-row" onClick={()=>add(section)}>＋ Add something gently</button>}{locked&&<p className="locked-copy">There’s nothing to do here yet. A confirmed address and Move Day will unlock these logistics.</p>}</div>
       </details>;
     })}
@@ -191,7 +215,21 @@ function Money({data,update}:{data:MoveData;update:(d:MoveData)=>void}){
 function Routes({data,update}:{data:MoveData;update:(d:MoveData)=>void}){return <section className="routes"><div className="section-heading"><div><p className="eyebrow">POST-MOVE INCOME</p><h2>Choose the route you’re testing</h2></div><p>Only one route asks for your attention at a time.</p></div>{data.routes.map(route=><details key={route.id} className={`route ${route.active?"active":""}`} open={route.active}><summary><div className="route-number">{route.id.slice(1)}</div><div><small>{route.subtitle}</small><h3>{route.name}</h3><span>{route.status}</span></div><button onClick={e=>{e.preventDefault();update({...data,routes:data.routes.map(r=>({...r,active:r.id===route.id}))})}}>{route.active?"Active":"Activate"}</button></summary><ul>{route.details.map(d=><li key={d}>○ <span>{d}</span></li>)}</ul></details>)}</section>}
 function Fuel({data,update}:{data:MoveData;update:(d:MoveData)=>void}){return <section className="fuel"><p className="eyebrow">MY FUEL SOURCE</p><textarea aria-label="Personal statement" value={data.profile.reason} onChange={e=>update({...data,profile:{...data.profile,reason:e.target.value}})}/><div className="reflection-grid">{data.reflections.map(r=><label key={r.id}><span>{r.prompt}</span><textarea value={r.value} onChange={e=>update({...data,reflections:data.reflections.map(x=>x.id===r.id?{...x,value:e.target.value}:x)})}/></label>)}</div></section>}
 function Flowering({data,update}:{data:MoveData;update:(d:MoveData)=>void}){return <section className="flowering"><div><p className="eyebrow">FIRST 30 DAYS</p><h2>Protect the flowering period.</h2><p>Safe home. Steady routines. One repeated connection. One reminder of why you moved.</p></div><label className="protect"><input type="checkbox" checked={data.profile.protectedMonth} onChange={e=>update({...data,profile:{...data.profile,protectedMonth:e.target.checked}})}/><span><b>Keep this month intentionally protected</b><small>Unnecessary commitments can wait.</small></span></label></section>}
-function ItemRow({item,all,edit}:{item:MoveItem;all:MoveItem[];edit:(i:MoveItem)=>void}){const blocked=blocker(item,all);return <button className="item-row" onClick={()=>edit(item)}><span className={`status-dot ${isDone(item)?"done":""}`}>{isDone(item)?"✓":"○"}</span><span><b>{item.title}</b><small>{blocked || item.description || `${item.status} · ${item.timing}`}</small></span><em>{blocked?"Waiting":item.status}</em><i>→</i></button>}
+function ItemRow({item,all,edit}:{item:MoveItem;all:MoveItem[];edit:(i:MoveItem)=>void}){const blocked=blocker(item,all);return <button className="item-row" onClick={()=>edit(item)}><span className={`status-dot ${isDone(item)?"done":""}`}>{isDone(item)?"✓":"○"}</span><span><b>{item.title}</b><small>{blocked || item.description || `${item.status} · ${item.timing}`}</small><span className="item-reason"><strong>Why:</strong> {itemReason(item,all)}</span></span><em>{blocked?"Waiting":item.status}</em><i>→</i></button>}
+
+function itemReason(item:MoveItem,all:MoveItem[]) {
+  const blocked=blocker(item,all);
+  if(blocked) return `It stays visible because ${blocked.toLowerCase()}, but it is not work for today.`;
+  if(item.relationship==="Deferred decision") return "This choice matters later; deciding now would create false certainty.";
+  if(item.relationship==="Decision gate") return "A clear choice here prevents committing money or energy too early.";
+  if(item.priority==="Safety") return "It protects safety or continuity before the move adds more pressure.";
+  if(item.priority==="Income") return "It keeps income options credible without forcing the final route yet.";
+  if(item.priority==="Housing") return "It strengthens housing readiness or removes friction from an application.";
+  if(item.unlocks?.length) return `Finishing it makes ${item.unlocks.length} later ${item.unlocks.length===1?"step":"steps"} easier to begin.`;
+  if(item.timing==="Allowed to wait") return "It matters, but consciously postponing it protects attention for move readiness.";
+  if(item.area==="Become") return "It keeps the life you are moving toward present inside the practical plan.";
+  return "It creates useful relief without pretending every loose end is a blocker.";
+}
 
 function Vault({data,update}:{data:MoveData;update:(d:MoveData)=>void}) {
   const [draft,setDraft]=useState<VaultEntry|null>(null);
