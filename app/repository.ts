@@ -9,7 +9,18 @@ export interface MoveRepository {
 
 const KEY = "move-os-v1";
 const migrate = (stored: MoveData): MoveData => {
-  if (stored.schemaVersion >= 3 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 4 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 3 && stored.moveFund) {
+    const customItems = stored.items.filter(item => !seedData.items.some(seed => seed.id === item.id));
+    return {
+      ...structuredClone(seedData),
+      items: [...structuredClone(seedData.items), ...customItems],
+      vault: stored.vault?.filter(entry => !["v1","v2"].includes(entry.id)).length
+        ? [...structuredClone(seedData.vault), ...stored.vault.filter(entry => !["v1","v2"].includes(entry.id))]
+        : structuredClone(seedData.vault),
+      schemaVersion: 4,
+    };
+  }
   if (stored.schemaVersion >= 2 && stored.moveFund) {
     const seededById = new Map(seedData.items.map(item => [item.id,item]));
     const retained = stored.items.filter(item => !seededById.has(item.id));
