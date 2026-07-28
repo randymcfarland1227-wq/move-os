@@ -5,9 +5,9 @@ import type { Area, KnowledgeStatus, MoveData, MoveItem, MoveStage, MoveStream, 
 import { moveRepository } from "./repository";
 import { blocker, isDone, recommendations } from "./priorities";
 
-type Page = "Today" | "Map" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
+type Page = "Today" | "Hub" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
 const pages: {name:Page; icon:string}[] = [
-  {name:"Today",icon:"⌂"},{name:"Map",icon:"⌘"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},
+  {name:"Today",icon:"⌂"},{name:"Hub",icon:"◎"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},
   {name:"Become",icon:"✦"},{name:"Vault",icon:"□"},{name:"Settings",icon:"○"},
 ];
 const sectionCopy: Record<string,string> = {
@@ -77,7 +77,7 @@ export function MoveOS() {
     <main>
       <header className="topbar"><Logo/><button className="phase-pill"><i/> {data.profile.phase}</button></header>
       {page==="Today" && <Today data={data} update={update} overwhelmed={overwhelmed} setOverwhelmed={setOverwhelmed} edit={setEditing}/>}
-      {page==="Map" && <MoveMap data={data} update={update} edit={setEditing}/>}
+      {page==="Hub" && <ProgressHub data={data} edit={setEditing} goTo={setPage}/>}
       {(page==="Clear"||page==="Build"||page==="Become") && <AreaPage area={page} data={data} update={update} edit={setEditing}/>}
       {page==="Vault" && <Vault data={data} update={update}/>}
       {page==="Settings" && <Settings data={data} update={update} dark={dark} setDark={setDark} fileRef={fileRef}/>}
@@ -128,17 +128,48 @@ function ActionCard({item,number,edit,data,update}:{item:MoveItem;number:number;
   return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="why-now"><small>WHY THIS NOW</small><span>{itemReason(item,data.items)}</span></div><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Settled",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Settle ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
 }
 
-function MoveMap({data,update,edit}:{data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
-  const parents=data.items.filter(item=>!item.parentId);
-  const add=(stage:MoveStage,stream:MoveStream)=>edit({id:crypto.randomUUID(),title:"",description:"",area:stream==="Become"?"Become":stream==="Clear"?"Clear":"Build",section:stream,status:"Not started",priority:"Relief",timing:"Now",stage,stream,relationship:"Parallel",knowledgeStatus:"Need to think",createdAt:new Date().toISOString().slice(0,10),updatedAt:new Date().toISOString().slice(0,10)});
-  return <div className="page map-page">
-    <p className="eyebrow">THE WHOLE MOVE, IN RELATIONSHIP</p><div className="map-intro"><div><h1>Your Move Map.</h1><p className="lede">See what can move now, what comes later, and what truly depends on something else.</p></div><div className="map-key"><span><i className="rel parallel"/>Parallel</span><span><i className="rel deferred"/>Deferred choice</span><span><i className="rel hard"/>True blocker</span></div></div>
-    <section className="truth-note"><b>Nothing here is automatically true.</b><span>Each card carries a knowledge label, and only a hard dependency can block another step.</span></section>
-    <div className="matrix-wrap"><div className="move-matrix">
-      <div className="matrix-corner"><small>LIFE STREAM</small></div>{stages.map((stage,index)=><div className="stage-head" key={stage}><small>0{index+1}</small><b>{stage}</b></div>)}
-      {streams.map(stream=><MatrixRow key={stream} stream={stream} stages={stages} items={parents} data={data} update={update} edit={edit} add={add}/>)}
-    </div></div>
-    <section className="relationship-guide"><h2>How the map reads</h2><div>{relationships.map(r=><article key={r}><i className={`rel ${relationClass(r)}`}/><b>{r}</b><p>{relationExplanation(r)}</p></article>)}</div></section>
+function ProgressHub({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goTo:(p:Page)=>void}) {
+  const [view,setView]=useState<"progress"|"timeline">("progress");
+  const actionable=data.items.filter(i=>i.timing!=="Allowed to wait"&&i.relationship!=="Informational");
+  const settled=actionable.filter(isDone).length;
+  const percent=actionable.length?Math.round(settled/actionable.length*100):0;
+  const areaData=(["Clear","Build","Become"] as const).map(area=>{
+    const items=actionable.filter(i=>i.area===area);
+    const done=items.filter(isDone).length;
+    return {area,items,done,percent:items.length?Math.round(done/items.length*100):0};
+  });
+  const timeline=[
+    {label:"Now · Foundation",note:"Facts, relief, and preparation that do not need a final job or address.",items:data.items.filter(i=>i.timing==="Now"&&!isDone(i)).slice(0,6)},
+    {label:"September · Decisions get useful",note:"Test income routes, verify landlord rules, and turn light research into a shortlist.",items:data.items.filter(i=>i.dueDate?.startsWith("2026-09")||i.id==="apartment-shortlist"||i.id==="property-rules").slice(0,6)},
+    {label:"October 15–31 · Move window",note:"Commit only with enough evidence. October 24 remains the temporary planning date.",items:data.items.filter(i=>i.stage==="Commit"||i.id==="holiday-plan").slice(0,6)},
+    {label:"After the lease",note:"A confirmed address unlocks accurate bookings and administrative setup.",items:data.items.filter(i=>i.timing==="After the lease").slice(0,6)},
+    {label:"Arrival · Protect the landing",note:"Functional home, steady routines, one repeated connection, and room to feel the new life.",items:data.items.filter(i=>i.timing==="After arrival"||i.stage==="Land").slice(0,6)},
+  ];
+  return <div className="page hub-page">
+    <div className="hub-heading"><div><p className="eyebrow">YOUR CENTRAL VIEW</p><h1>See the move taking shape.</h1><p className="lede">Progress without pretending every task is equal—or that every unknown is a problem.</p></div><div className="view-switch" role="group" aria-label="Hub view"><button className={view==="progress"?"active":""} onClick={()=>setView("progress")}>Progress</button><button className={view==="timeline"?"active":""} onClick={()=>setView("timeline")}>Timeline</button></div></div>
+    {view==="progress"?<>
+      <section className="overall-progress">
+        <div className="progress-ring" style={{"--progress":`${percent*3.6}deg`} as React.CSSProperties}><span><strong>{percent}%</strong><small>settled</small></span></div>
+        <div><small>THE WHOLE ACTIVE PLAN</small><h2>{settled} of {actionable.length} pieces are settled</h2><p>Waiting and research still count as understood parts of the plan. “Allowed to Wait” is excluded because postponing it is already a decision.</p></div>
+        <div className="progress-key"><span><i className="done"/>Settled <b>{settled}</b></span><span><i className="motion"/>In motion <b>{actionable.filter(i=>i.status==="In motion").length}</b></span><span><i className="open"/>Open <b>{actionable.filter(i=>!isDone(i)&&i.status!=="In motion").length}</b></span></div>
+      </section>
+      <div className="area-progress-grid">{areaData.map(({area,items,done,percent:areaPercent})=><article className={`area-progress ${area.toLowerCase()}`} key={area}>
+        <div className="area-progress-top"><span>{area}</span><strong>{areaPercent}%</strong></div><div className="area-bar"><i style={{width:`${areaPercent}%`}}/></div>
+        <h2>{done} settled <small>of {items.length}</small></h2>
+        <p>{area==="Clear"?"Finish this chapter without turning love or responsibility into an endless gate.":area==="Build"?"Create trustworthy options for money, housing, income, health, and the move itself.":"Keep the desired home, relationships, creativity, and belonging inside the plan."}</p>
+        <button onClick={()=>goTo(area)}>Open {area} →</button>
+      </article>)}</div>
+      <section className="milestone-lane"><div className="hub-section-title"><div><p className="eyebrow">THE MAIN STORY</p><h2>Five milestones—not fifty disconnected tasks</h2></div><p>Each milestone gathers the smaller work beneath it.</p></div><div className="milestones">{[
+        ["1","Financial ground","Know which credit and loose-end work truly affects the move.","credit-plan"],
+        ["2","Rental ready","Verify the budget, property rules, and application packet.","rental-ready"],
+        ["3","Income evidence","Keep options open; choose the route when timing makes it useful.","income-options"],
+        ["4","A real home","Shortlist, compare true cost, review, and sign.","lease"],
+        ["5","Move and land","Unlock logistics with the lease, then protect the first month.","move-plan"],
+      ].map(([number,title,copy,id])=>{const milestone=data.items.find(i=>i.id===id);const children=data.items.filter(i=>i.parentId===id);const done=isDone(milestone!)||children.length>0&&children.every(isDone);return <button key={id} onClick={()=>milestone&&edit(milestone)}><span className={done?"complete":""}>{done?"✓":number}</span><div><b>{title}</b><small>{copy}</small></div><i>→</i></button>})}</div></section>
+    </>:<section className="journey-timeline">
+      <div className="timeline-intro"><div><p className="eyebrow">A CALM SEQUENCE</p><h2>The plan across time</h2></div><p>This is an order of attention, not a rule that says you cannot move until life is perfect.</p></div>
+      {timeline.map((period,index)=><article key={period.label} className="timeline-period"><div className="timeline-date"><span>0{index+1}</span><div><h3>{period.label}</h3><p>{period.note}</p></div></div><div className="timeline-items">{period.items.length?period.items.map(item=><button key={item.id} onClick={()=>edit(item)}><span className={isDone(item)?"done":""}>{isDone(item)?"✓":"○"}</span><div><b>{item.title}</b><small>{item.relationship==="Hard dependency"?(blocker(item,data.items)||"Ready when its prerequisite is settled"):item.status+" · "+item.knowledgeStatus}</small></div><i>→</i></button>):<p className="empty-period">Nothing needs your attention here yet.</p>}</div></article>)}
+    </section>}
   </div>;
 }
 
