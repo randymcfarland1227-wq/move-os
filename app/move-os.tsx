@@ -5,10 +5,9 @@ import type { Area, KnowledgeStatus, MoveData, MoveItem, MoveStage, MoveStream, 
 import { moveRepository } from "./repository";
 import { blocker, isDone, recommendations } from "./priorities";
 
-type Page = "Today" | "Hub" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
-const pages: {name:Page; icon:string}[] = [
-  {name:"Today",icon:"⌂"},{name:"Hub",icon:"◎"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},
-  {name:"Become",icon:"✦"},{name:"Vault",icon:"□"},{name:"Settings",icon:"○"},
+type Page = "Overview" | "Hub" | "Calendar" | "Connections" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
+const toolPages: {name:Page; icon:string}[] = [
+  {name:"Overview",icon:"☼"},{name:"Hub",icon:"◎"},{name:"Calendar",icon:"□"},{name:"Connections",icon:"✧"},
 ];
 const sectionCopy: Record<string,string> = {
   "Money, Credit and Old Obligations":"Prevent new damage and make the old things finite.",
@@ -57,7 +56,8 @@ function Button({children, onClick, kind="secondary", type="button"}:{children:R
 
 export function MoveOS() {
   const [data,setData] = useState<MoveData|null>(null);
-  const [page,setPage] = useState<Page>("Today");
+  const [page,setPage] = useState<Page>("Overview");
+  const [areasOpen,setAreasOpen] = useState(false);
   const [dark,setDark] = useState(false);
   const [overwhelmed,setOverwhelmed] = useState(false);
   const [editing,setEditing] = useState<MoveItem|null>(null);
@@ -70,24 +70,33 @@ export function MoveOS() {
   return <div className="app-shell">
     <aside className="sidebar">
       <Logo/>
-      <nav aria-label="Primary">{pages.map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
+      <nav aria-label="Primary" className="celestial-nav">
+        <button className={page==="Overview"?"active":""} onClick={()=>{setPage("Overview");setOverwhelmed(false)}}><span>☼</span>Overview</button>
+        <button className={`area-menu-button ${["Clear","Build","Become"].includes(page)?"active":""}`} aria-expanded={areasOpen} onClick={()=>setAreasOpen(!areasOpen)}><span>◒</span>Life areas <i>{areasOpen?"−":"+"}</i></button>
+        {areasOpen&&<div className="area-menu">{(["Clear","Build","Become"] as Page[]).map((area,index)=><button key={area} className={page===area?"active":""} onClick={()=>{setPage(area);setOverwhelmed(false)}}><span>{["↗","◇","✦"][index]}</span><div><b>{area}</b><small>{["finish this chapter","build the foundation","protect the future"][index]}</small></div></button>)}</div>}
+        <small className="nav-label">TOOLS</small>
+        {toolPages.slice(1).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}
+      </nav>
       <div className="sidebar-quote"><small>YOUR NORTH STAR</small><p>“{data.profile.reason}”</p></div>
+      <div className="utility-links"><button onClick={()=>setPage("Vault")}>Vault</button><button onClick={()=>setPage("Settings")}>Settings</button></div>
       <button className="theme-toggle" onClick={()=>setDark(!dark)}>{dark?"☀︎  Light mode":"☾  Dark mode"}</button>
     </aside>
     <main>
       <header className="topbar"><Logo/><button className="phase-pill"><i/> {data.profile.phase}</button></header>
-      {page==="Today" && <Today data={data} update={update} overwhelmed={overwhelmed} setOverwhelmed={setOverwhelmed} edit={setEditing}/>}
+      {page==="Overview" && <Today data={data} update={update} overwhelmed={overwhelmed} setOverwhelmed={setOverwhelmed} edit={setEditing} goTo={setPage}/>}
       {page==="Hub" && <ProgressHub data={data} edit={setEditing} goTo={setPage}/>}
+      {page==="Calendar" && <CalendarPage data={data} edit={setEditing}/>}
+      {page==="Connections" && <ConnectionsPage data={data} edit={setEditing} goTo={setPage}/>}
       {(page==="Clear"||page==="Build"||page==="Become") && <AreaPage area={page} data={data} update={update} edit={setEditing}/>}
       {page==="Vault" && <Vault data={data} update={update}/>}
       {page==="Settings" && <Settings data={data} update={update} dark={dark} setDark={setDark} fileRef={fileRef}/>}
     </main>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{pages.slice(0,5).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
+    <nav className="mobile-nav" aria-label="Mobile tools">{toolPages.map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
     {editing && <ItemModal item={editing} all={data.items} onClose={()=>setEditing(null)} onSave={saved=>{update({...data,items:data.items.some(i=>i.id===saved.id)?data.items.map(i=>i.id===saved.id?saved:i):[...data.items,saved]});setEditing(null)}} onDelete={()=>{update({...data,items:data.items.filter(i=>i.id!==editing.id)});setEditing(null)}}/>}
   </div>;
 }
 
-function Today({data,update,overwhelmed,setOverwhelmed,edit}:{data:MoveData;update:(d:MoveData)=>void;overwhelmed:boolean;setOverwhelmed:(v:boolean)=>void;edit:(i:MoveItem)=>void}) {
+function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData;update:(d:MoveData)=>void;overwhelmed:boolean;setOverwhelmed:(v:boolean)=>void;edit:(i:MoveItem)=>void;goTo:(p:Page)=>void}) {
   const [now] = useState(() => Date.now());
   const suggested=useMemo(()=>recommendations(data.items),[data.items]);
   const waiting=data.items.filter(i=>blocker(i,data.items)).slice(0,3);
@@ -107,6 +116,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit}:{data:MoveData;upda
     </div>;
   }
   return <div className="page today">
+    <section className="celestial-hero"><img src="/og.png" alt="Celestial paths converging on a glowing new home"/><div className="hero-overlay"><small>MOVE OS · YOUR LIVING COMPASS</small><h2>One life,<br/><em>moving toward itself.</em></h2><button onClick={()=>goTo("Hub")}>See the whole journey →</button></div><div className="orbit-stamp"><span>{days}</span><small>days to the<br/>planning date</small></div></section>
     <div className="welcome">
       <div><p className="eyebrow">GOOD MORNING · {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"})}</p><h1>You’re not moving all at once.<br/><em>You’re building the way there.</em></h1></div>
       <div className="move-date"><small>TARGET MOVE</small><strong>{new Date(data.profile.targetMoveDate+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</strong><span>{days} days · backup {new Date(data.profile.backupDate+"T12:00").toLocaleDateString("en-US",{month:"short",year:"numeric"})}</span></div>
@@ -114,6 +124,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit}:{data:MoveData;upda
     <section className="unlock"><div className="unlock-mark">↗</div><div><span>CURRENT UNLOCK</span><h2>{data.profile.currentUnlock}</h2><p>This work supports several possible paths. The final job choice can stay intentionally deferred.</p></div><Button kind="ink" onClick={()=>edit(data.items.find(i=>i.id==="rental-ready")!)}>Continue <b>→</b></Button></section>
     <div className="section-heading"><div><p className="eyebrow">A BALANCED DAY</p><h2>Three things that matter now</h2></div><p>One from each part of the life you’re tending.</p></div>
     <div className="suggestions">{suggested.map((item,index)=><ActionCard key={item.id} item={item} number={index+1} edit={edit} data={data} update={update}/>)}</div>
+    <details className="overview-areas"><summary><div><span>◒</span><div><small>THE THREE EFFORTS</small><b>Explore Clear, Build, and Become</b></div></div><i>⌄</i></summary><div>{(["Clear","Build","Become"] as const).map((area,index)=><button key={area} onClick={()=>goTo(area)}><span>{["↗","◇","✦"][index]}</span><div><b>{area}</b><small>{["Finish responsibly without making perfection the gate.","Create trustworthy money, housing, income, and arrival options.","Keep creativity, belonging, love, and the desired life visible."][index]}</small></div><i>→</i></button>)}</div></details>
     <div className="lower-grid">
       <section className="quiet-list"><div className="list-title"><h3>Waiting on another step</h3><span>{waiting.length}</span></div>{waiting.map(i=><button onClick={()=>edit(i)} key={i.id}><b>{i.title}</b><small>{blocker(i,data.items)}</small></button>)}</section>
       <section className="quiet-list settled"><div className="list-title"><h3>Recently settled</h3><span>✓</span></div>{settled.map(i=><button onClick={()=>edit(i)} key={i.id}><b>{i.title}</b><small>{i.status} · quietly done</small></button>)}</section>
@@ -173,19 +184,25 @@ function ProgressHub({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goT
   </div>;
 }
 
-function MatrixRow({stream,stages,items,data,update,edit,add}:{stream:MoveStream;stages:MoveStage[];items:MoveItem[];data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void;add:(s:MoveStage,r:MoveStream)=>void}) {
-  return <><div className="stream-head"><span>{streamIcon(stream)}</span><b>{stream}</b></div>{stages.map(stage=><div className="matrix-cell" key={`${stream}-${stage}`}>{items.filter(i=>i.stream===stream&&i.stage===stage).map(item=><MapCard key={item.id} item={item} children={data.items.filter(i=>i.parentId===item.id)} data={data} update={update} edit={edit}/>)}<button className="matrix-add" onClick={()=>add(stage,stream)} aria-label={`Add to ${stream}, ${stage}`}>＋</button></div>)}</>;
+function CalendarPage({data,edit}:{data:MoveData;edit:(i:MoveItem)=>void}) {
+  const groups=[
+    {month:"AUG",name:"Ground & gather",symbol:"☿",copy:"Turn fears into facts. Keep the options moving.",items:data.items.filter(i=>i.timing==="Now"&&!isDone(i)).slice(0,7)},
+    {month:"SEP",name:"Test & decide",symbol:"◐",copy:"Income conversations, applications, property rules, and a real shortlist.",items:data.items.filter(i=>i.dueDate?.startsWith("2026-09")||["property-rules","apartment-shortlist","rent-budget"].includes(i.id)).slice(0,7)},
+    {month:"OCT",name:"Commit & cross",symbol:"○",copy:"The October 15–31 window. Sign only when enough is known.",items:data.items.filter(i=>i.stage==="Commit"||["holiday-plan","goodbye-time","grandma-letter"].includes(i.id)).slice(0,7)},
+    {month:"LAND",name:"Arrive softly",symbol:"✦",copy:"Address-dependent setup, a functional home, routines, and belonging.",items:data.items.filter(i=>i.timing==="After the lease"||i.timing==="After arrival"||i.stage==="Land").slice(0,7)},
+  ];
+  return <div className="page calendar-page"><div className="tool-hero"><div><p className="eyebrow">TIME AS A SUPPORT, NOT A THREAT</p><h1>Your move calendar.</h1><p className="lede">A seasonal view of when each kind of effort becomes useful. Dates are working anchors, not permission slips.</p></div><div className="moon-clock"><i/><span>OCT<br/><b>24</b></span></div></div><section className="calendar-orbit">{groups.map((group,index)=><article key={group.month}><header><span>{group.symbol}</span><div><small>{group.month} · 0{index+1}</small><h2>{group.name}</h2></div></header><p>{group.copy}</p><div>{group.items.map(item=><button key={item.id} onClick={()=>edit(item)}><span className={isDone(item)?"done":""}>{isDone(item)?"✓":"○"}</span><div><b>{item.title}</b><small>{item.dueDate?new Date(item.dueDate+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):item.knowledgeStatus}</small></div></button>)}</div></article>)}</section><div className="calendar-note"><span>☼</span><p><b>The plan can breathe.</b> If October 24 changes, the sequence still holds: prepare what is knowable, commit when the evidence is real, then land gently.</p></div></div>;
 }
 
-function MapCard({item,children,data,update,edit}:{item:MoveItem;children:MoveItem[];data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
-  const complete=children.filter(isDone).length;
-  const setStatus=(child:MoveItem)=>update({...data,items:data.items.map(i=>i.id===child.id?{...i,status:isDone(i)?"Not started":"Settled"}:i)});
-  return <details className={`map-card ${relationClass(item.relationship)}`}><summary><div className="map-card-top"><span>{item.knowledgeStatus}</span><i className={`rel ${relationClass(item.relationship)}`}/></div><h3>{item.title}</h3>{children.length>0&&<small>{complete} of {children.length} subtasks settled</small>}<div className="mini-track"><i style={{width:children.length?`${complete/children.length*100}%`:isDone(item)?"100%":"0%"}}/></div></summary><div className="map-card-body"><p>{item.description}</p><span className="relation-label">{item.relationship}</span>{blocker(item,data.items)&&<em>{blocker(item,data.items)}</em>}{children.map(child=><div className="subtask" key={child.id}><button onClick={()=>setStatus(child)}>{isDone(child)?"✓":"○"}</button><button onClick={()=>edit(child)}>{child.title}</button></div>)}<button className="edit-map-card" onClick={()=>edit(item)}>Open details →</button></div></details>;
+function ConnectionsPage({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goTo:(p:Page)=>void}) {
+  const nodes=[
+    {area:"Clear" as Page,symbol:"↗",title:"Release the drag",copy:"Credit facts, finite family support, closure, and the few loose ends that matter.",item:"credit-plan"},
+    {area:"Build" as Page,symbol:"◇",title:"Create a landing path",copy:"Rental readiness and income options move together until a real lease unlocks logistics.",item:"rental-ready"},
+    {area:"Become" as Page,symbol:"✦",title:"Protect the desire",copy:"The home, creativity, relationships, and belonging are the reason for the work—not a reward after it.",item:"life-filter"},
+  ];
+  const dependencies=data.items.filter(i=>i.relationship==="Hard dependency").map(item=>({item,source:data.items.find(x=>x.id===item.dependency)}));
+  return <div className="page connections-page"><div className="tool-hero"><div><p className="eyebrow">CONCEPTS & CONNECTIONS</p><h1>Why the pieces belong together.</h1><p className="lede">A simple constellation of the move: what can travel in parallel, what protects the future, and what truly unlocks something else.</p></div></div><section className="constellation-map"><div className="constellation-center"><small>THE CENTER</small><strong>A safe, alive,<br/>creative new life</strong><span>October 2026</span></div>{nodes.map((node,index)=><button className={`concept-node node-${index+1}`} key={node.area} onClick={()=>{const item=data.items.find(i=>i.id===node.item);if(item)edit(item)}}><span>{node.symbol}</span><div><small>{node.area}</small><b>{node.title}</b><p>{node.copy}</p></div></button>)}<i className="orbit orbit-one"/><i className="orbit orbit-two"/></section><section className="true-connections"><div className="hub-section-title"><div><p className="eyebrow">ONLY THE REAL GATES</p><h2>What genuinely unlocks what</h2></div><p>Everything else can be prepared, researched, reflected on, or allowed to wait.</p></div><div>{dependencies.map(({item,source})=><button key={item.id} onClick={()=>edit(item)}><div><small>FIRST</small><b>{source?.title||"Prerequisite"}</b></div><span>→</span><div><small>THEN</small><b>{item.title}</b></div></button>)}</div></section><section className="parallel-ribbon"><div><span>☿</span><p><b>Still moving in parallel:</b> savings, credit research, rental documents, neighborhood learning, employer research, health continuity, family plans, closure, and the life you want.</p></div><button onClick={()=>goTo("Hub")}>Return to progress hub →</button></section></div>;
 }
-
-const relationClass=(r?:RelationshipType)=>r==="Hard dependency"?"hard":r==="Deferred decision"?"deferred":r==="Decision gate"?"gate":r==="Waiting on event"?"waiting":r==="Helpful sequence"?"helpful":r==="Informational"?"info":"parallel";
-const relationExplanation=(r:RelationshipType)=>({ "Hard dependency":"This genuinely cannot happen first.","Helpful sequence":"Usually easier afterward, but still movable.","Parallel":"Can happen alongside other work.","Decision gate":"A choice is required before commitment.","Deferred decision":"Intentionally decide closer to when it matters.","Waiting on event":"The next move depends on outside information.","Informational":"Context that guides the plan, not a task." }[r]);
-const streamIcon=(s:MoveStream)=>({"Income":"$","Housing":"⌂","Money":"◒","Clear":"↗","Health & dog":"♡","Become":"✦"}[s]);
 
 function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
   const intro={
