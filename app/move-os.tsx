@@ -61,10 +61,12 @@ export function MoveOS() {
   const [dark,setDark] = useState(false);
   const [overwhelmed,setOverwhelmed] = useState(false);
   const [editing,setEditing] = useState<MoveItem|null>(null);
+  const [searchOpen,setSearchOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   useEffect(()=>{ moveRepository.load().then(setData); },[]);
   useEffect(()=>{ if(data) moveRepository.save(data); },[data]);
   useEffect(()=>{ document.documentElement.dataset.theme = dark ? "dark" : "light"; },[dark]);
+  useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setSearchOpen(true)}if(event.key==="Escape")setSearchOpen(false)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[]);
   if(!data) return <div className="loading">Gathering your move plan…</div>;
   const update=(next:MoveData)=>setData(next);
   return <div className="app-shell">
@@ -77,12 +79,13 @@ export function MoveOS() {
         <small className="nav-label">TOOLS</small>
         {toolPages.slice(1).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}
       </nav>
+      <button className="plan-search-button" onClick={()=>setSearchOpen(true)}><span>⌕</span><div><b>Find anything</b><small>Tasks, sections, notes</small></div><kbd>⌘K</kbd></button>
       <div className="sidebar-quote"><small>YOUR NORTH STAR</small><p>“{data.profile.reason}”</p></div>
       <div className="utility-links"><button onClick={()=>setPage("Vault")}>Vault</button><button onClick={()=>setPage("Settings")}>Settings</button></div>
       <button className="theme-toggle" onClick={()=>setDark(!dark)}>{dark?"☀︎  Light mode":"☾  Dark mode"}</button>
     </aside>
     <main>
-      <header className="topbar"><Logo/><button className="phase-pill"><i/> {data.profile.phase}</button></header>
+      <header className="topbar"><Logo/><button className="mobile-search" onClick={()=>setSearchOpen(true)} aria-label="Search the plan">⌕</button><button className="phase-pill"><i/> {data.profile.phase}</button></header>
       {page==="Overview" && <Today data={data} update={update} overwhelmed={overwhelmed} setOverwhelmed={setOverwhelmed} edit={setEditing} goTo={setPage}/>}
       {page==="Hub" && <ProgressHub data={data} edit={setEditing} goTo={setPage}/>}
       {page==="Calendar" && <CalendarPage data={data} edit={setEditing}/>}
@@ -91,9 +94,17 @@ export function MoveOS() {
       {page==="Vault" && <Vault data={data} update={update}/>}
       {page==="Settings" && <Settings data={data} update={update} dark={dark} setDark={setDark} fileRef={fileRef}/>}
     </main>
-    <nav className="mobile-nav" aria-label="Mobile tools">{toolPages.map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation">{([...[{name:"Overview",icon:"☼"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},{name:"Become",icon:"✦"}],...toolPages.slice(1)] as {name:Page;icon:string}[]).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
+    {searchOpen&&<PlanSearch data={data} onClose={()=>setSearchOpen(false)} onOpen={item=>{setEditing(item);setSearchOpen(false)}} goTo={next=>{setPage(next);setSearchOpen(false)}}/>}
     {editing && <ItemModal item={editing} all={data.items} onClose={()=>setEditing(null)} onSave={saved=>{update({...data,items:data.items.some(i=>i.id===saved.id)?data.items.map(i=>i.id===saved.id?saved:i):[...data.items,saved]});setEditing(null)}} onDelete={()=>{update({...data,items:data.items.filter(i=>i.id!==editing.id)});setEditing(null)}}/>}
   </div>;
+}
+
+function PlanSearch({data,onClose,onOpen,goTo}:{data:MoveData;onClose:()=>void;onOpen:(item:MoveItem)=>void;goTo:(page:Page)=>void}){
+  const [query,setQuery]=useState("");
+  const normalized=query.trim().toLowerCase();
+  const results=normalized?data.items.filter(item=>[item.title,item.description,item.section,item.notes,item.status,item.knowledgeStatus].some(value=>value?.toLowerCase().includes(normalized))).slice(0,12):data.items.filter(item=>!isDone(item)&&item.timing!=="Allowed to wait").slice(0,8);
+  return <div className="search-backdrop" onMouseDown={event=>event.currentTarget===event.target&&onClose()}><section className="plan-search" role="dialog" aria-modal="true" aria-label="Find anything in Move OS"><header><span>⌕</span><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search tasks, sections, notes, or statuses…"/><button onClick={onClose} aria-label="Close search">×</button></header><div className="search-area-shortcuts">{(["Clear","Build","Become"] as const).map(area=><button key={area} onClick={()=>goTo(area)}><span>{area==="Clear"?"↗":area==="Build"?"◇":"✦"}</span>{area}</button>)}</div><div className="search-results"><small>{normalized?`${results.length} MATCH${results.length===1?"":"ES"}`:"OPEN PIECES"}</small>{results.length?results.map(item=><button key={item.id} onClick={()=>onOpen(item)}><span className={`search-area search-${item.area.toLowerCase()}`}>{item.area.slice(0,1)}</span><div><b>{item.title}</b><small>{item.section} · {item.status}</small></div><i>→</i></button>):<p>No pieces match that search.</p>}</div><footer><span><kbd>ESC</kbd> close</span><p>One place to remember everything.</p></footer></section></div>
 }
 
 function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData;update:(d:MoveData)=>void;overwhelmed:boolean;setOverwhelmed:(v:boolean)=>void;edit:(i:MoveItem)=>void;goTo:(p:Page)=>void}) {
