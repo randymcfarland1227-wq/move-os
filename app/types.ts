@@ -12,6 +12,7 @@ export interface MoveItem {
   dependency?: string; unlocks?: string[]; timing: Timing; notes?: string;
   parentId?: string; stage?: MoveStage; stream?: MoveStream;
   relationship?: RelationshipType; knowledgeStatus?: KnowledgeStatus;
+  kind?: "Action" | "Reference"; referenceFor?: string[];
   createdAt: string; updatedAt: string;
 }
 
@@ -36,4 +37,5 @@ export interface Reflection { id: string; prompt: string; value: string; }
 export interface MoveData {
   schemaVersion: number; profile: MoveProfile; items: MoveItem[]; moveFund: MoveFund; money: MoneyBucket[];
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
+  sectionTargets: Record<string, string>;
 }
