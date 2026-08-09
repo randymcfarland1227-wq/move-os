@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* Move OS uses the Sites-compatible defaults. */
 };
 
 export default nextConfig;

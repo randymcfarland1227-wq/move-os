@@ -1,5 +1,5 @@
 export type Area = "Clear" | "Build" | "Become" | "Vault";
-export type Status = "Not started" | "In motion" | "Waiting" | "Blocked" | "Good enough" | "Secure" | "Settled" | "Carry forward" | "Released";
+export type Status = "Not started" | "In motion" | "Waiting" | "Blocked" | "Completed" | "Deferred";
 export type Priority = "Safety" | "Money" | "Income" | "Housing" | "Deadline" | "Relief" | "Someday";
 export type Timing = "Now" | "Prepare early" | "After the lease" | "First 72 hours" | "After arrival" | "Allowed to wait";
 export type MoveStage = "Foundation" | "Prepare" | "Decide" | "Commit" | "Move" | "Land";

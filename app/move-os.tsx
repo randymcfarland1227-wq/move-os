@@ -42,7 +42,7 @@ const areaSections: Record<Area,string[]> = {
   Become:["My Fuel Source","The Life I Want","People and Relationships","Spiritual Preparation","Community and Belonging","Flowering Period: First 30 Days"],
   Vault:[],
 };
-const statuses:Status[] = ["Not started","In motion","Waiting","Blocked","Good enough","Secure","Settled","Carry forward","Released"];
+const statuses:Status[] = ["Not started","In motion","Waiting","Blocked","Completed","Deferred"];
 const timings:Timing[] = ["Now","Prepare early","After the lease","First 72 hours","After arrival","Allowed to wait"];
 const stages:MoveStage[]=["Foundation","Prepare","Decide","Commit","Move","Land"];
 const streams:MoveStream[]=["Income","Housing","Money","Clear","Health & dog","Become"];
@@ -96,7 +96,7 @@ export function MoveOS() {
     </main>
     <nav className="mobile-nav" aria-label="Mobile navigation">{([...[{name:"Overview",icon:"☼"},{name:"Clear",icon:"↗"},{name:"Build",icon:"◇"},{name:"Become",icon:"✦"}],...toolPages.slice(1)] as {name:Page;icon:string}[]).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}</nav>
     {searchOpen&&<PlanSearch data={data} onClose={()=>setSearchOpen(false)} onOpen={item=>{setEditing(item);setSearchOpen(false)}} goTo={next=>{setPage(next);setSearchOpen(false)}}/>}
-    {editing && <ItemModal item={editing} all={data.items} onClose={()=>setEditing(null)} onSave={saved=>{update({...data,items:data.items.some(i=>i.id===saved.id)?data.items.map(i=>i.id===saved.id?saved:i):[...data.items,saved]});setEditing(null)}} onDelete={()=>{update({...data,items:data.items.filter(i=>i.id!==editing.id)});setEditing(null)}}/>}
+    {editing && <ItemModal item={editing} all={data.items} onOpen={setEditing} onClose={()=>setEditing(null)} onSave={saved=>{update({...data,items:data.items.some(i=>i.id===saved.id)?data.items.map(i=>i.id===saved.id?saved:i):[...data.items,saved]});setEditing(null)}} onDelete={()=>{update({...data,items:data.items.filter(i=>i.id!==editing.id)});setEditing(null)}}/>}
   </div>;
 }
 
@@ -146,7 +146,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData
     <details className="overview-areas"><summary><div><span>◒</span><div><small>THE THREE EFFORTS</small><b>Explore Clear, Build, and Become</b></div></div><i>⌄</i></summary><div>{(["Clear","Build","Become"] as const).map((area,index)=><button key={area} onClick={()=>goTo(area)}><span>{["↗","◇","✦"][index]}</span><div><b>{area}</b><small>{["Finish responsibly without making perfection the gate.","Create trustworthy money, housing, income, and arrival options.","Keep creativity, belonging, love, and the desired life visible."][index]}</small></div><i>→</i></button>)}</div></details>
     <div className="lower-grid">
       <section className="quiet-list"><div className="list-title"><h3>Waiting on another step</h3><span>{waiting.length}</span></div>{waiting.map(i=><button onClick={()=>edit(i)} key={i.id}><b>{i.title}</b><small>{blocker(i,data.items)}</small></button>)}</section>
-      <section className="quiet-list settled"><div className="list-title"><h3>Recently settled</h3><span>✓</span></div>{settled.map(i=><button onClick={()=>edit(i)} key={i.id}><b>{i.title}</b><small>{i.status} · quietly done</small></button>)}</section>
+      <section className="quiet-list settled"><div className="list-title"><h3>Recently completed</h3><span>✓</span></div>{settled.map(i=><button onClick={()=>edit(i)} key={i.id}><b>{i.title}</b><small>Completed · quietly done</small></button>)}</section>
     </div>
     <button className="overwhelm" onClick={()=>setOverwhelmed(true)}><span>○</span><div><b>I feel overwhelmed</b><small>Show me just one kind next step.</small></div><i>→</i></button>
     <p className="principle">One place to remember everything. <b>A few things to work on.</b> One life I am moving toward.</p>
@@ -155,7 +155,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData
 
 function ActionCard({item,number,edit,data,update}:{item:MoveItem;number:number;edit:(i:MoveItem)=>void;data:MoveData;update:(d:MoveData)=>void}) {
   const colors={Clear:"coral",Build:"sage",Become:"lavender",Vault:"sand"};
-  return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="why-now"><small>WHY THIS NOW</small><span>{itemReason(item,data.items)}</span></div><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Settled",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Settle ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
+  return <article className={`action-card ${colors[item.area]}`}><div className="card-top"><span>{item.area.toUpperCase()}</span><i>0{number}</i></div><h3>{item.title}</h3><p>{item.description}</p><div className="why-now"><small>WHY THIS NOW</small><span>{itemReason(item,data.items)}</span></div><div className="card-bottom"><button onClick={()=>update({...data,items:data.items.map(i=>i.id===item.id?{...i,status:"Completed",updatedAt:new Date().toISOString().slice(0,10)}:i)})} aria-label={`Complete ${item.title}`}>○</button><button onClick={()=>edit(item)}>Open <b>→</b></button></div></article>;
 }
 
 function ProgressHub({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goTo:(p:Page)=>void}) {
@@ -179,13 +179,13 @@ function ProgressHub({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goT
     <div className="hub-heading"><div><p className="eyebrow">YOUR CENTRAL VIEW</p><h1>See the move taking shape.</h1><p className="lede">Progress without pretending every task is equal—or that every unknown is a problem.</p></div><div className="view-switch" role="group" aria-label="Hub view"><button className={view==="progress"?"active":""} onClick={()=>setView("progress")}>Progress</button><button className={view==="timeline"?"active":""} onClick={()=>setView("timeline")}>Timeline</button></div></div>
     {view==="progress"?<>
       <section className="overall-progress">
-        <div className="progress-ring" style={{"--progress":`${percent*3.6}deg`} as React.CSSProperties}><span><strong>{percent}%</strong><small>settled</small></span></div>
-        <div><small>THE WHOLE ACTIVE PLAN</small><h2>{settled} of {actionable.length} pieces are settled</h2><p>Waiting and research still count as understood parts of the plan. “Allowed to Wait” is excluded because postponing it is already a decision.</p></div>
-        <div className="progress-key"><span><i className="done"/>Settled <b>{settled}</b></span><span><i className="motion"/>In motion <b>{actionable.filter(i=>i.status==="In motion").length}</b></span><span><i className="open"/>Open <b>{actionable.filter(i=>!isDone(i)&&i.status!=="In motion").length}</b></span></div>
+        <div className="progress-ring" style={{"--progress":`${percent*3.6}deg`} as React.CSSProperties}><span><strong>{percent}%</strong><small>complete</small></span></div>
+        <div><small>THE WHOLE ACTIVE PLAN</small><h2>{settled} of {actionable.length} pieces are completed</h2><p>Waiting and research still count as understood parts of the plan. “Allowed to Wait” is excluded because postponing it is already a decision.</p></div>
+        <div className="progress-key"><span><i className="done"/>Completed <b>{settled}</b></span><span><i className="motion"/>In motion <b>{actionable.filter(i=>i.status==="In motion").length}</b></span><span><i className="open"/>Open <b>{actionable.filter(i=>!isDone(i)&&i.status!=="In motion").length}</b></span></div>
       </section>
       <div className="area-progress-grid">{areaData.map(({area,items,done,percent:areaPercent})=><article className={`area-progress ${area.toLowerCase()} progress-${areaPercent<35?"low":areaPercent<75?"medium":"high"}`} key={area}>
         <div className="area-progress-top"><span>{area}</span><strong>{areaPercent}%</strong></div><div className="area-bar"><i style={{width:`${areaPercent}%`}}/></div>
-        <h2>{done} settled <small>of {items.length}</small></h2>
+        <h2>{done} completed <small>of {items.length}</small></h2>
         <p>{area==="Clear"?"Finish this chapter without turning love or responsibility into an endless gate.":area==="Build"?"Create trustworthy options for money, housing, income, health, and the move itself.":"Keep the desired home, relationships, creativity, and belonging inside the plan."}</p>
         <button onClick={()=>goTo(area)}>Open {area} →</button>
       </article>)}</div>
@@ -198,7 +198,7 @@ function ProgressHub({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void;goT
       ].map(([number,title,copy,id],index)=>{const milestone=data.items.find(i=>i.id===id);const children=data.items.filter(i=>i.parentId===id);const done=isDone(milestone!)||children.length>0&&children.every(isDone);return <button className={`milestone-${index+1} ${done?"is-complete":""}`} key={id} onClick={()=>milestone&&edit(milestone)}><span className={done?"complete":""}>{done?"✓":number}</span><div><small>MILESTONE 0{index+1}</small><b>{title}</b><em>{copy}</em></div><i>→</i></button>})}</div></section>
     </>:<section className="journey-timeline">
       <div className="timeline-intro"><div><p className="eyebrow">A CALM SEQUENCE</p><h2>The plan across time</h2></div><p>This is an order of attention, not a rule that says you cannot move until life is perfect.</p></div>
-      {timeline.map((period,index)=><article key={period.label} className="timeline-period"><div className="timeline-date"><span>0{index+1}</span><div><h3>{period.label}</h3><p>{period.note}</p></div></div><div className="timeline-items">{period.items.length?period.items.map(item=><button key={item.id} onClick={()=>edit(item)}><span className={isDone(item)?"done":""}>{isDone(item)?"✓":"○"}</span><div><b>{item.title}</b><small>{item.relationship==="Hard dependency"?(blocker(item,data.items)||"Ready when its prerequisite is settled"):item.status+" · "+item.knowledgeStatus}</small></div><i>→</i></button>):<p className="empty-period">Nothing needs your attention here yet.</p>}</div></article>)}
+      {timeline.map((period,index)=><article key={period.label} className="timeline-period"><div className="timeline-date"><span>0{index+1}</span><div><h3>{period.label}</h3><p>{period.note}</p></div></div><div className="timeline-items">{period.items.length?period.items.map(item=><button key={item.id} onClick={()=>edit(item)}><span className={isDone(item)?"done":""}>{isDone(item)?"✓":"○"}</span><div><b>{item.title}</b><small>{item.relationship==="Hard dependency"?(blocker(item,data.items)||"Ready when its prerequisite is completed"):item.status+" · "+item.knowledgeStatus}</small></div><i>→</i></button>):<p className="empty-period">Nothing needs your attention here yet.</p>}</div></article>)}
     </section>}
   </div>;
 }
@@ -250,7 +250,7 @@ function AreaDashboard({area,data}:{area:Exclude<Area,"Vault">;data:MoveData}) {
   const complete=items.filter(isDone).length;
   const percent=items.length?Math.round(complete/items.length*100):0;
   const meanings={Clear:{label:"WHAT CLEAR MEANS",definition:"Clear means deciding what must be resolved, what only needs a finite plan, and what is not yours to carry into the move.",labels:["What could follow me?","What deserves a finite response?","What am I allowed to set down?"]},Build:{label:"WHAT BUILD MEANS",definition:"Build means creating enough financial, employment, housing, health, and logistical evidence to make the move trustworthy.",labels:["What foundation is missing?","What can I prepare now?","What waits for a real address?"]},Become:{label:"WHAT BECOME MEANS",definition:"Become means keeping the desired home, creativity, relationships, community, and inner life present while the practical plan takes shape.",labels:["What life am I protecting?","What should guide my choices?","What does not need to be earned?"]}}[area];
-  return <section className={`area-dashboard dashboard-${area.toLowerCase()}`}><div className="area-definition"><small>{meanings.label}</small><p>{meanings.definition}</p><div>{meanings.labels.map(label=><span key={label}>{label}</span>)}</div></div><div className="area-completion"><div className={`mini-progress progress-${percent<35?"low":percent<75?"medium":"high"}`}><strong>{percent}%</strong><small>settled</small></div><p><b>{complete} of {items.length}</b> active pieces complete</p></div><nav className="area-toc" aria-label={`${area} table of contents`}><small>SECTION OVERVIEW</small>{sections.map((section,index)=>{const sectionItems=data.items.filter(i=>i.area===area&&i.section===section);const done=sectionItems.filter(isDone).length;return <button key={section} onClick={()=>document.getElementById(sectionId(section))?.scrollIntoView({behavior:"smooth",block:"start"})}><span>0{index+1}</span><div><b>{section}</b><small>{done} of {sectionItems.length} settled</small></div><i>↓</i></button>})}</nav></section>;
+  return <section className={`area-dashboard dashboard-${area.toLowerCase()}`}><div className="area-definition"><small>{meanings.label}</small><p>{meanings.definition}</p><div>{meanings.labels.map(label=><span key={label}>{label}</span>)}</div></div><div className="area-completion"><div className={`mini-progress progress-${percent<35?"low":percent<75?"medium":"high"}`}><strong>{percent}%</strong><small>complete</small></div><p><b>{complete} of {items.length}</b> active pieces complete</p></div><nav className="area-toc" aria-label={`${area} table of contents`}><small>SECTION OVERVIEW</small>{sections.map((section,index)=>{const sectionItems=data.items.filter(i=>i.area===area&&i.section===section);const done=sectionItems.filter(isDone).length;return <button key={section} onClick={()=>document.getElementById(sectionId(section))?.scrollIntoView({behavior:"smooth",block:"start"})}><span>0{index+1}</span><div><b>{section}</b><small>{done} of {sectionItems.length} completed</small></div><i>↓</i></button>})}</nav></section>;
 }
 
 function AreaPage({area,data,update,edit}:{area:Area;data:MoveData;update:(d:MoveData)=>void;edit:(i:MoveItem)=>void}) {
@@ -343,7 +343,7 @@ function Settings({data,update,dark,setDark,fileRef}:{data:MoveData;update:(d:Mo
   return <div className="page area-page settings"><p className="eyebrow">YOUR SPACE</p><h1>Settings.</h1><p className="lede">Personalize your horizon and keep a portable copy of everything.</p><section className="settings-card"><h2>Move profile</h2><label>Destination<input value={data.profile.destination} onChange={e=>update({...data,profile:{...data.profile,destination:e.target.value}})}/></label><label>Current phase<input value={data.profile.phase} onChange={e=>update({...data,profile:{...data.profile,phase:e.target.value}})}/></label><label>Current unlock<textarea value={data.profile.currentUnlock} onChange={e=>update({...data,profile:{...data.profile,currentUnlock:e.target.value}})}/></label></section><section className="settings-card"><h2>Appearance & data</h2><label className="switch-row"><span><b>Dark mode</b><small>A quieter palette for evenings.</small></span><input type="checkbox" checked={dark} onChange={e=>setDark(e.target.checked)}/></label><div className="data-actions"><Button kind="primary" onClick={exportData}>Export all data</Button><Button onClick={()=>fileRef.current?.click()}>Import JSON</Button><input ref={fileRef} hidden type="file" accept="application/json" onChange={e=>{const file=e.target.files?.[0];if(file)file.text().then(text=>update(JSON.parse(text)))}}/></div><p className="privacy">Stored only in this browser. Move OS does not send this information anywhere.</p></section></div>;
 }
 
-function ItemModal({item,all,onClose,onSave,onDelete}:{item:MoveItem;all:MoveItem[];onClose:()=>void;onSave:(i:MoveItem)=>void;onDelete:()=>void}) {
+function ItemModal({item,all,onOpen,onClose,onSave,onDelete}:{item:MoveItem;all:MoveItem[];onOpen:(i:MoveItem)=>void;onClose:()=>void;onSave:(i:MoveItem)=>void;onDelete:()=>void}) {
   const [draft,setDraft]=useState(item);
   const areaMeta={Clear:{symbol:"↗",verb:"RELEASE",copy:"This piece helps make the current chapter finite."},Build:{symbol:"◇",verb:"CREATE",copy:"This piece strengthens the practical landing path."},Become:{symbol:"✦",verb:"BECOME",copy:"This piece protects the life at the center of the move."},Vault:{symbol:"□",verb:"REMEMBER",copy:"This piece keeps useful context close."}}[draft.area];
   const parent=all.find(i=>i.id===draft.parentId);
@@ -357,10 +357,10 @@ function ItemModal({item,all,onClose,onSave,onDelete}:{item:MoveItem;all:MoveIte
         <small>{areaMeta.verb} ORBIT</small><h2>{draft.area}</h2><p>{areaMeta.copy}</p>
         <div className="piece-location"><span><small>AREA</small><b>{draft.area}</b></span><i>→</i><span><small>SECTION</small><b>{draft.section}</b></span><i>→</i><span><small>PHASE</small><b>{draft.stage||"Foundation"}</b></span></div>
         <div className="connection-summary"><small>HOW THIS PIECE CONNECTS</small>
-          {parent&&<div><span>Part of</span><b>{parent.title}</b></div>}
-          {dependency&&<div><span>Waits for</span><b>{dependency.title}</b></div>}
-          {children.length>0&&<div><span>Contains</span><b>{children.length} smaller {children.length===1?"piece":"pieces"}</b></div>}
-          {unlocked.length>0&&<div><span>Unlocks</span><b>{unlocked.map(i=>i.title).join(", ")}</b></div>}
+          {parent&&<button type="button" className="connection-link" onClick={()=>onOpen(parent)}><span>Part of</span><b>{parent.title}</b><i>→</i></button>}
+          {dependency&&<button type="button" className="connection-link" onClick={()=>onOpen(dependency)}><span>Waits for</span><b>{dependency.title}</b><i>→</i></button>}
+          {children.length>0&&<div className="smaller-pieces"><span>Contains {children.length} smaller {children.length===1?"piece":"pieces"}</span>{children.map(child=><button type="button" key={child.id} onClick={()=>onOpen(child)}><i>{isDone(child)?"✓":"○"}</i><b>{child.title}</b><em>{child.status}</em><strong>→</strong></button>)}</div>}
+          {unlocked.length>0&&<div className="unlocked-pieces"><span>Unlocks</span>{unlocked.map(next=><button type="button" key={next.id} onClick={()=>onOpen(next)}><b>{next.title}</b><i>→</i></button>)}</div>}
           {!parent&&!dependency&&!children.length&&!unlocked.length&&<div><span>Moves as</span><b>{draft.relationship||"Parallel"}</b></div>}
         </div>
         <p className="editor-why"><small>WHY IT MATTERS</small>{itemReason(draft,all)}</p>

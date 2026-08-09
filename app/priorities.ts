@@ -1,7 +1,7 @@
 import type { MoveItem } from "./types";
 
 const weights = { Safety:100, Money:90, Income:80, Housing:70, Deadline:60, Relief:35, Someday:5 };
-export const isDone = (item: MoveItem) => ["Secure","Settled","Released","Good enough"].includes(item.status);
+export const isDone = (item: MoveItem) => item.status === "Completed";
 export const blocker = (item: MoveItem, all: MoveItem[]) => {
   if (!item.dependency || item.relationship !== "Hard dependency") return undefined;
   const dependency = all.find(candidate => candidate.id === item.dependency);

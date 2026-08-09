@@ -1,4 +1,4 @@
-import type { MoveData } from "./types";
+import type { MoveData, Status } from "./types";
 import { seedData } from "./data";
 
 export interface MoveRepository {
@@ -8,31 +8,42 @@ export interface MoveRepository {
 }
 
 const KEY = "move-os-v1";
+const simplifyStatus = (status: string): Status => {
+  if (["Good enough","Secure","Settled","Released","Completed"].includes(status)) return "Completed";
+  if (["Carry forward","Deferred"].includes(status)) return "Deferred";
+  if (["Not started","In motion","Waiting","Blocked"].includes(status)) return status as Status;
+  return "Not started";
+};
 const migrate = (stored: MoveData): MoveData => {
-  if (stored.schemaVersion >= 4 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 5 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 4 && stored.moveFund) return {
+    ...stored,
+    schemaVersion: 5,
+    items: stored.items.map(item => ({...item,status:simplifyStatus(item.status)})),
+  };
   if (stored.schemaVersion >= 3 && stored.moveFund) {
     const customItems = stored.items.filter(item => !seedData.items.some(seed => seed.id === item.id));
     return {
       ...structuredClone(seedData),
-      items: [...structuredClone(seedData.items), ...customItems],
+      items: [...structuredClone(seedData.items), ...customItems.map(item=>({...item,status:simplifyStatus(item.status)}))],
       vault: stored.vault?.filter(entry => !["v1","v2"].includes(entry.id)).length
         ? [...structuredClone(seedData.vault), ...stored.vault.filter(entry => !["v1","v2"].includes(entry.id))]
         : structuredClone(seedData.vault),
-      schemaVersion: 4,
+      schemaVersion: 5,
     };
   }
   if (stored.schemaVersion >= 2 && stored.moveFund) {
     const seededById = new Map(seedData.items.map(item => [item.id,item]));
     const retained = stored.items.filter(item => !seededById.has(item.id));
     return {
-      ...stored, schemaVersion:3,
+      ...stored, schemaVersion:5,
       profile:{...stored.profile,currentUnlock:seedData.profile.currentUnlock},
-      items:[...seedData.items,...retained],
+      items:[...seedData.items,...retained.map(item=>({...item,status:simplifyStatus(item.status)}))],
     };
   }
   return {
     ...stored,
-    schemaVersion: 3,
+    schemaVersion: 5,
     profile: {...stored.profile, targetMoveDate:"2026-10-24", backupDate:"2026-10-31"},
     moveFund: structuredClone(seedData.moveFund),
     money: structuredClone(seedData.money),
