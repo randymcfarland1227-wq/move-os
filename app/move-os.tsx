@@ -72,12 +72,14 @@ export function MoveOS() {
   return <div className="app-shell">
     <aside className="sidebar">
       <Logo/>
+      <div className="sidebar-status"><span>CURRENT CHAPTER</span><b>{data.profile.phase}</b><small>{data.profile.destination}</small></div>
       <nav aria-label="Primary" className="celestial-nav">
-        <button className={page==="Overview"?"active":""} onClick={()=>{setPage("Overview");setOverwhelmed(false)}}><span>☼</span>Overview</button>
+        <small className="nav-label">YOUR PLAN</small>
+        <button className={`nav-overview ${page==="Overview"?"active":""}`} onClick={()=>{setPage("Overview");setOverwhelmed(false)}}><span>☼</span><div><b>Overview</b><small>What matters now</small></div></button>
         <button className={`area-menu-button ${["Clear","Build","Become"].includes(page)?"active":""}`} aria-expanded={areasOpen} onClick={()=>setAreasOpen(!areasOpen)}><span>◒</span>Life areas <i>{areasOpen?"−":"+"}</i></button>
-        {areasOpen&&<div className="area-menu">{(["Clear","Build","Become"] as Page[]).map((area,index)=><button key={area} className={page===area?"active":""} onClick={()=>{setPage(area);setOverwhelmed(false)}}><span>{["↗","◇","✦"][index]}</span><div><b>{area}</b><small>{["finish this chapter","build the foundation","protect the future"][index]}</small></div></button>)}</div>}
+        {areasOpen&&<div className="area-menu">{(["Clear","Build","Become"] as Page[]).map((area,index)=><button key={area} className={`nav-area nav-${area.toLowerCase()} ${page===area?"active":""}`} onClick={()=>{setPage(area);setOverwhelmed(false)}}><span>{["↗","◇","✦"][index]}</span><div><b>{area}</b><small>{["finish this chapter","build the foundation","protect the future"][index]}</small></div></button>)}</div>}
         <small className="nav-label">TOOLS</small>
-        {toolPages.slice(1).map(p=><button key={p.name} className={page===p.name?"active":""} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span>{p.name}</button>)}
+        {toolPages.slice(1).map(p=><button key={p.name} className={`nav-tool nav-${p.name.toLowerCase()} ${page===p.name?"active":""}`} onClick={()=>{setPage(p.name);setOverwhelmed(false)}}><span>{p.icon}</span><div><b>{p.name}</b><small>{{Hub:"Progress and sequence",Calendar:"Dates and chapters",Connections:"Tasks and dependencies"}[p.name as "Hub"|"Calendar"|"Connections"]}</small></div></button>)}
       </nav>
       <button className="plan-search-button" onClick={()=>setSearchOpen(true)}><span>⌕</span><div><b>Find anything</b><small>Tasks, sections, notes</small></div><kbd>⌘K</kbd></button>
       <div className="sidebar-quote"><small>YOUR NORTH STAR</small><p>“{data.profile.reason}”</p></div>
