@@ -134,7 +134,7 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData
     </div>;
   }
   return <div className="page today">
-    <section className="celestial-hero"><img src="/og.png" alt="Celestial paths converging on a glowing new home"/><div className="hero-overlay"><small>MOVE OS · YOUR LIVING COMPASS</small><h2>One life,<br/><em>moving toward itself.</em></h2><button onClick={()=>goTo("Hub")}>See the whole journey →</button></div><div className="orbit-stamp"><span>{days}</span><small>days to the<br/>planning date</small></div></section>
+    <section className="celestial-hero"><img src="/og.png" alt="One life moving toward itself — a celestial Move OS illustration"/><div className="hero-overlay"><small>MOVE OS · YOUR LIVING COMPASS</small><button onClick={()=>goTo("Hub")}>See the whole journey →</button></div><div className="orbit-stamp"><span>{days}</span><small>days to the<br/>planning date</small></div></section>
     <div className="welcome">
       <div><p className="eyebrow">GOOD MORNING · {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric"})}</p><h1>You’re not moving all at once.<br/><em>You’re building the way there.</em></h1></div>
       <div className="move-date"><small>TODAY · {todayDate.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}</small><span className="daily-mantra">“{mantra}”</span><small>TARGET PLANNING DATE</small><strong>{new Date(data.profile.targetMoveDate+"T12:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</strong><span><b>{days} days</b> to planning date · backup {new Date(data.profile.backupDate+"T12:00").toLocaleDateString("en-US",{month:"short",year:"numeric"})}</span></div>
