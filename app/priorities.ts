@@ -21,5 +21,5 @@ export const score = (item: MoveItem, all: MoveItem[]) => {
 };
 export const recommendations = (items: MoveItem[]) =>
   (["Clear","Build","Become"] as const).map(area =>
-    items.filter(item => item.area === area && isAction(item)).sort((a,b) => score(b,items) - score(a,items))[0]
+    items.filter(item => item.area === area && isAction(item) && !isDone(item)).sort((a,b) => score(b,items) - score(a,items))[0]
   ).filter(Boolean) as MoveItem[];

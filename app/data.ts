@@ -4,11 +4,12 @@ const today = new Date().toISOString().slice(0, 10);
 const item = (partial: Partial<MoveItem> & Pick<MoveItem, "id" | "title" | "area" | "section">): MoveItem => ({
   description: "", status: "Not started", priority: "Relief", timing: "Prepare early",
   stage: "Prepare", stream: "Clear", relationship: "Parallel", knowledgeStatus: "Known",
+  kind: "Action",
   createdAt: today, updatedAt: today, ...partial,
 });
 
 export const seedData: MoveData = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   profile: {
     reason: "I am building a life with more privacy, creativity, nature, meaningful connection, and financial peace.",
     destination: "Denver (current plan; Chicago and Boston were considered)",
@@ -23,6 +24,7 @@ export const seedData: MoveData = {
     "Timeline":"2026-10-24","Move Money":"2026-10-15","Post-Move Income":"2026-09-30","Rental Readiness":"2026-09-20","Housing and Lease":"2026-10-10","Land Softly":"2026-10-24","Physical Move":"2026-10-24",
     "The Life I Want":"2026-10-24","People and Relationships":"2026-10-15","Spiritual Preparation":"2026-10-24","Community and Belonging":"2026-11-30","Flowering Period: First 30 Days":"2026-11-23"
   },
+  calendarTargets: {ground:"2026-08-31",test:"2026-09-30",commit:"2026-10-24",land:"2026-11-23"},
   items: [
     item({id:"credit-plan",title:"Build the rental-focused credit plan",description:"Use the Randall workbook to separate active accounts, collections, and the few balances that could affect approval. The goal is credible progress—not perfect credit.",area:"Clear",section:"Money, Credit and Old Obligations",priority:"Housing",timing:"Now",stage:"Foundation",stream:"Money",relationship:"Parallel",knowledgeStatus:"Known",unlocks:["rental-ready"]}),
     item({id:"credit-utilization",parentId:"credit-plan",title:"Choose which high-utilization balances to lower first",description:"Current utilization is mostly in the 90s. Prioritize the change most likely to help rental readiness.",area:"Clear",section:"Money, Credit and Old Obligations",priority:"Money",timing:"Now",stage:"Foundation",stream:"Money",relationship:"Helpful sequence",knowledgeStatus:"Estimate"}),

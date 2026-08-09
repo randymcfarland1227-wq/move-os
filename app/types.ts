@@ -38,4 +38,5 @@ export interface MoveData {
   schemaVersion: number; profile: MoveProfile; items: MoveItem[]; moveFund: MoveFund; money: MoneyBucket[];
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
   sectionTargets: Record<string, string>;
+  calendarTargets: Record<string, string>;
 }
