@@ -2,14 +2,14 @@ import type { MoveItem } from "./types";
 
 const weights = { Safety:100, Money:90, Income:80, Housing:70, Deadline:60, Relief:35, Someday:5 };
 export const isDone = (item: MoveItem) => item.status === "Completed";
-export const isAction = (item: MoveItem) => item.kind !== "Reference";
+export const isAction = (item: MoveItem) => !item.kind || item.kind === "Action";
 export const blocker = (item: MoveItem, all: MoveItem[]) => {
   if (!item.dependency || item.relationship !== "Hard dependency") return undefined;
   const dependency = all.find(candidate => candidate.id === item.dependency);
   return dependency && !isDone(dependency) ? `Waiting for “${dependency.title}”` : undefined;
 };
 export const score = (item: MoveItem, all: MoveItem[]) => {
-  if (isDone(item) || item.timing === "Allowed to wait" || blocker(item, all)) return -100;
+  if (isDone(item) || item.status === "Deferred" || item.optional || item.timing === "Allowed to wait" || blocker(item, all)) return -100;
   let value = weights[item.priority];
   value += (item.unlocks?.length || 0) * 12;
   if (item.dueDate) {
@@ -21,5 +21,5 @@ export const score = (item: MoveItem, all: MoveItem[]) => {
 };
 export const recommendations = (items: MoveItem[]) =>
   (["Clear","Build","Become"] as const).map(area =>
-    items.filter(item => item.area === area && isAction(item) && !isDone(item)).sort((a,b) => score(b,items) - score(a,items))[0]
+    items.filter(item => item.area === area && isAction(item) && !isDone(item) && score(item,items)>-100).sort((a,b) => score(b,items) - score(a,items))[0]
   ).filter(Boolean) as MoveItem[];

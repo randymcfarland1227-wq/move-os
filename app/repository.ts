@@ -15,7 +15,21 @@ const simplifyStatus = (status: string): Status => {
   return "Not started";
 };
 const migrate = (stored: MoveData): MoveData => {
-  if (stored.schemaVersion >= 7 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 8 && stored.moveFund) return stored;
+  if (stored.schemaVersion >= 7 && stored.moveFund) {
+    return {
+      ...structuredClone(seedData),
+      moveFund: stored.moveFund,
+      money: stored.money?.length ? stored.money : structuredClone(seedData.money),
+      vault: stored.vault?.filter(entry=>!["v1","v2","v3"].includes(entry.id)).length
+        ? [...structuredClone(seedData.vault),...stored.vault.filter(entry=>!["v1","v2","v3"].includes(entry.id))]
+        : structuredClone(seedData.vault),
+      reflections: stored.reflections?.length ? stored.reflections : structuredClone(seedData.reflections),
+      apartments: [],
+      hideCompleted: false,
+      schemaVersion: 8,
+    };
+  }
   if (stored.schemaVersion >= 6 && stored.moveFund) {
     const seededById = new Map(seedData.items.map(item => [item.id,item]));
     return {...stored,schemaVersion:7,calendarTargets:{...seedData.calendarTargets,...stored.calendarTargets},items:stored.items.map(item=>{const seeded=seededById.get(item.id);return {...item,kind:seeded?.kind||item.kind||"Action",referenceFor:seeded?.referenceFor||item.referenceFor};})};

@@ -12,7 +12,8 @@ export interface MoveItem {
   dependency?: string; unlocks?: string[]; timing: Timing; notes?: string;
   parentId?: string; stage?: MoveStage; stream?: MoveStream;
   relationship?: RelationshipType; knowledgeStatus?: KnowledgeStatus;
-  kind?: "Action" | "Reference"; referenceFor?: string[];
+  kind?: "Action" | "Reference" | "Reflection"; referenceFor?: string[];
+  optional?: boolean;
   createdAt: string; updatedAt: string;
 }
 
@@ -34,9 +35,21 @@ export interface EmploymentRoute { id: string; name: string; subtitle: string; a
 export interface VaultEntry { id: string; title: string; category: string; url: string; date: string; notes: string; }
 export interface Reflection { id: string; prompt: string; value: string; }
 
+export type ApartmentStatus = "Considering" | "Researching" | "Touring" | "Applied" | "Top choice" | "Passed" | "Lease signed";
+export type HousingType = "Standard lease" | "Sublet";
+export interface ApartmentListing {
+  id: string; name: string; city: "Chicago" | "Denver" | "Other"; neighborhood: string;
+  url: string; housingType: HousingType; monthlyRent: number; bedrooms: string; squareFeet?: number;
+  qualities: string; incomeRequirement: string; minimumCredit?: number; applicationFee: number;
+  deposit: number; petCost: number; parkingCost: number; otherMoveInCosts: number;
+  moveInSpecial: string; specialSavings: number; status: ApartmentStatus; notes: string;
+}
+
 export interface MoveData {
   schemaVersion: number; profile: MoveProfile; items: MoveItem[]; moveFund: MoveFund; money: MoneyBucket[];
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
   sectionTargets: Record<string, string>;
   calendarTargets: Record<string, string>;
+  apartments: ApartmentListing[];
+  hideCompleted: boolean;
 }
