@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { DM_Sans, Outfit } from "next/font/google";
 import "./globals.css";
 
-const sans=Inter({variable:"--font-sans",subsets:["latin"]});
-const display=Space_Grotesk({variable:"--font-serif",subsets:["latin"]});
+const sans=DM_Sans({variable:"--font-sans",subsets:["latin"]});
+const display=Outfit({variable:"--font-serif",subsets:["latin"]});
 export const metadata:Metadata={
   title:"Randy's Move Plan",
   description:"A calm, dependency-aware companion for preparing a major move.",
