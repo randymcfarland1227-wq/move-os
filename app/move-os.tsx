@@ -318,14 +318,13 @@ function AreaDashboard({area,data,update,goTo}:{area:Exclude<Area,"Vault">;data:
       <div className="area-reflection-count"><strong>{reflectionDone}/{reflectionTotal}</strong><span>reflections answered</span></div>
     </div>
     <nav className="area-toc grouped-toc" aria-label={`${areaLabels[area]} section overview`}>
-      <small>JUMP TO THE KIND OF WORK YOU NEED</small>
-      <div className="toc-groups">{areaGroups[area].map((group,groupIndex)=>{
-        const datesSet=group.sections.filter(section=>data.sectionTargets[section]).length;
+      <small>CHOOSE A SECTION TO VIEW ITS TASKS</small>
+      <div className="toc-groups">{areaGroups[area].map(group=>{
         return <section key={group.title} className="toc-group">
-          <header><span>0{groupIndex+1}</span><div><b>{group.title}</b><small>{group.copy}</small></div></header>
+          <header><div><b>{group.title}</b><small>{group.copy}</small></div></header>
           <div>{group.sections.map(section=>{const sectionItems=data.items.filter(i=>i.area===area&&i.section===section&&!i.optional&&isAction(i));const optional=data.items.filter(i=>i.area===area&&i.section===section&&i.optional&&isAction(i)).length;const sectionReflections=data.items.filter(i=>i.area===area&&i.section===section&&i.kind==="Reflection").length;const guidance=data.items.filter(i=>i.area===area&&i.section===section&&i.kind==="Reference").length;const done=sectionItems.filter(isDone).length;return <article className="toc-row" key={section}><button className="toc-jump" onClick={()=>document.getElementById(sectionId(section))?.scrollIntoView({behavior:"smooth",block:"start"})}><div className="toc-jump-copy"><b>{sectionLabels[section]||section}</b><div className="toc-metrics">{sectionItems.length>0&&<span className="toc-metric metric-actions"><strong>{done}/{sectionItems.length}</strong> required action{sectionItems.length===1?"":"s"}</span>}{optional>0&&<span className="toc-metric metric-optional"><strong>{optional}</strong> optional</span>}{sectionReflections>0&&<span className="toc-metric metric-reflections"><strong>✦ {sectionReflections}</strong> reflection{sectionReflections===1?"":"s"}</span>}{guidance>0&&<span className="toc-metric metric-guidance"><strong>FYI {guidance}</strong> reference{guidance===1?"":"s"}</span>}{!sectionItems.length&&!optional&&!sectionReflections&&!guidance&&<span className="toc-metric metric-guidance">Reference section</span>}</div></div><i>↓</i></button></article>})}
             {group.apartmentTool&&<button className="toc-tool-link" onClick={()=>goTo("Apartments")}><span>TOOL</span><div><b>Apartment Matrix</b><small>Compare price, fit, qualification rules, sublets, and specials.</small></div><i>→</i></button>}
-            <details className="toc-date-editor"><summary><span>◷</span><div><b>Working dates</b><small>{datesSet?`${datesSet} set in this group`:"Add only when a date is useful"}</small></div><i>⌄</i></summary><div>{group.sections.map(section=><label key={section}><span>{sectionLabels[section]||section}</span><input aria-label={`${sectionLabels[section]||section} target date`} type="date" value={data.sectionTargets[section]||""} onChange={e=>update({...data,sectionTargets:{...data.sectionTargets,[section]:e.target.value}})}/></label>)}</div></details>
+            <details className="toc-date-editor"><summary><span>◷</span><b>Optional due date</b><i>⌄</i></summary><div>{group.sections.map(section=><label key={section}><span>{sectionLabels[section]||section}</span><input aria-label={`${sectionLabels[section]||section} target date`} type="date" value={data.sectionTargets[section]||""} onChange={e=>update({...data,sectionTargets:{...data.sectionTargets,[section]:e.target.value}})}/></label>)}</div></details>
           </div>
         </section>;
       })}</div>
@@ -363,7 +362,7 @@ function AreaPage({area,data,update,edit,goTo}:{area:Area;data:MoveData;update:(
     <header className="area-page-heading"><div><h1>{intro[0]}</h1><p>{intro[1]}</p></div><aside><small>GOOD-ENOUGH RULE</small><p>{permission}</p></aside></header>
     {area!=="Vault"&&<AreaDashboard area={area} data={data} update={update} goTo={goTo}/>}
     {area==="Become" && <Fuel data={data} update={update}/>}
-    <div className="area-work-groups">{areaGroups[area as Exclude<Area,"Vault">].map((group,index)=><section className="area-work-group" key={group.title}><header><span>0{index+1}</span><div><h2>{group.title}</h2><p>{group.copy}</p></div></header>{group.sections.map(renderSection)}</section>)}</div>
+    <div className="area-work-groups">{areaGroups[area as Exclude<Area,"Vault">].map(group=><section className="area-work-group" key={group.title}><header><div><h2>{group.title}</h2><p>{group.copy}</p></div></header>{group.sections.map(renderSection)}</section>)}</div>
   </div>;
 }
 
