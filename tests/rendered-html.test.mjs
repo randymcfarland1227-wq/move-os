@@ -5,10 +5,10 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 
-test("build contains Move OS product metadata", async () => {
+test("build contains Randy's move-plan metadata", async () => {
   const worker = await readFile(resolve(root, "dist/server/index.js"), "utf8");
-  assert.match(worker, /Move OS/);
-  assert.match(worker, /gentler way forward/);
+  assert.match(worker, /Randy's Move Plan/);
+  assert.match(worker, /Chicago-first plan/);
   assert.doesNotMatch(worker, /codex-preview/);
 });
 
