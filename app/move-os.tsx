@@ -367,7 +367,7 @@ function AreaPage({area,data,update,edit,goTo}:{area:Area;data:MoveData;update:(
   return <div className={`page area-page area-${area.toLowerCase()}`}>
     <header className="area-page-heading"><div><h1>{intro[0]}</h1><p>{intro[1]}</p></div><aside><small>GOOD-ENOUGH RULE</small><p>{permission}</p></aside></header>
     {area!=="Vault"&&<AreaDashboard area={area} data={data} update={update} goTo={goTo}/>}
-    {area==="Become" && <Fuel data={data} update={update}/>}
+    {area==="Become" && <div className="fuel-first"><Fuel data={data} update={update}/></div>}
     <div className="area-work-groups">{areaGroups[area as Exclude<Area,"Vault">].map((group,index)=>{
       const groupItems=data.items.filter(item=>item.area===area&&group.sections.includes(item.section)&&isAction(item)&&!item.optional);
       const groupDone=groupItems.filter(isDone).length;
