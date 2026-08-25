@@ -6,9 +6,6 @@ import { moveRepository } from "./repository";
 import { blocker, isAction, isDone, recommendations } from "./priorities";
 
 type Page = "Overview" | "Hub" | "Calendar" | "Connections" | "Apartments" | "Clear" | "Build" | "Become" | "Vault" | "Settings";
-const toolPages: {name:Page; icon:string}[] = [
-  {name:"Overview",icon:"☼"},{name:"Hub",icon:"◎"},{name:"Calendar",icon:"□"},{name:"Connections",icon:"✧"},{name:"Apartments",icon:"⌂"},
-];
 const sectionCopy: Record<string,string> = {
   "Money, Credit and Old Obligations":"Prevent new damage and make the old things finite.",
   "Car, Documents and Responsibilities":"Safety, reliability, records, and loose ends.",
@@ -140,9 +137,8 @@ export function MoveOS() {
         <button className={`tab-clear ${page==="Clear"?"active":""}`} onClick={()=>setPage("Clear")}>{areaLabels.Clear}</button>
         <div className="build-tab-group"><button className={`tab-build ${["Build","Apartments"].includes(page)?"active":""}`} onClick={()=>setPage("Build")}>{areaLabels.Build}</button><div className="build-submenu"><button onClick={()=>setPage("Build")}>Move tasks</button><button onClick={()=>setPage("Apartments")}>Apartment Matrix</button></div></div>
         <button className={`tab-become ${page==="Become"?"active":""}`} onClick={()=>setPage("Become")}>{areaLabels.Become}</button>
-        <button className={page==="Calendar"?"active":""} onClick={()=>setPage("Calendar")}>Calendar</button>
-        <button className={page==="Connections"?"active":""} onClick={()=>setPage("Connections")}>Dependencies</button>
-      </nav><div className="header-actions"><button onClick={()=>setSearchOpen(true)} aria-label="Search the plan">⌕</button><button onClick={()=>setPage("Vault")}>Vault</button><button onClick={()=>setPage("Settings")}>Settings</button><button onClick={()=>setDark(!dark)} aria-label="Toggle theme">{dark?"☀︎":"☾"}</button></div></div>
+        <div className="tools-tab-group"><button className={["Calendar","Connections","Vault"].includes(page)?"active":""}>Tools</button><div className="tools-submenu"><button onClick={()=>setPage("Calendar")}>Calendar</button><button onClick={()=>setPage("Connections")}>Dependency map</button><button onClick={()=>setPage("Vault")}>Reference Vault</button></div></div>
+      </nav><div className="header-actions"><button onClick={()=>setSearchOpen(true)} aria-label="Search the plan">⌕</button><button onClick={()=>setPage("Settings")}>Settings</button><button onClick={()=>setDark(!dark)} aria-label="Toggle theme">{dark?"☀︎":"☾"}</button></div></div>
       <div className="header-progress"><span>REQUIRED TASKS</span>{(["Clear","Build","Become"] as const).map(area=>{const info=progressInfo(area);return <button key={area} onClick={()=>setPage(area)} className={`progress-${area.toLowerCase()}`}><b>{areaLabels[area]}</b><i><em style={{width:`${info.percent}%`}}/></i><strong>{info.total?`${info.percent}%`:"Reflect"}</strong></button>})}<label><input type="checkbox" checked={data.hideCompleted} onChange={event=>update({...data,hideCompleted:event.target.checked})}/> Hide completed</label></div>
     </header>
     <main>
@@ -195,12 +191,12 @@ function Today({data,update,overwhelmed,setOverwhelmed,edit,goTo}:{data:MoveData
   }
   return <div className="page today">
     <section className="overview-top"><blockquote className="overview-poem"><small>MARY OLIVER · THE SUMMER DAY</small><p>“Tell me, what is it you plan to do with your one wild and precious life?”</p><footer>{data.profile.reason}</footer></blockquote><aside className="overview-day"><small>TODAY</small><h1>{todayDate.toLocaleDateString("en-US",{weekday:"long"})}</h1><strong>{todayDate.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</strong><div className="weather-row">{weather.length?weather.map(place=><div key={place.name}><span>{weatherSymbol(place.code)}</span><p><b>{place.name}</b><small>{place.temperature}° · {weatherDescription(place.code)}</small></p></div>):<p className="weather-loading">Weather is taking a moment.</p>}</div><div className="overview-target"><div><small>PLANNING DATE</small><b>{new Date(data.profile.targetMoveDate+"T12:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</b></div><span><b>{days}</b> days away</span></div></aside></section>
-    <OverviewDependencies data={data} edit={edit} goTo={goTo}/>
-    <section className="overview-dashboard"><div className={`overview-score progress-${completion<35?"low":completion<75?"medium":"high"}`}><span>{completion}%</span><div><small>REQUIRED PLAN COMPLETE</small><b>{complete} of {active.length} actions</b></div></div><div className="overview-progress-bars">{areaProgress.map(stat=><button key={stat.area} onClick={()=>goTo(stat.area)}><div><b>{areaLabels[stat.area]}</b><span>{stat.done}/{stat.total}</span></div><i><em style={{width:`${stat.percent}%`}}/></i></button>)}</div><button className="overview-hub-link" onClick={()=>goTo("Hub")}><b>Open the Progress Hub</b><span>Milestones, completion, and timeline →</span></button></section>
-    <section className="reflection-overview"><div><p className="eyebrow">INNER WORK</p><h2>Reflections have their own measure.</h2><p>They are not scored like tasks. This simply shows which prompts have been answered or intentionally completed.</p></div><div>{reflectionProgress.map(stat=><button key={stat.area} onClick={()=>goTo(stat.area)}><span>{stat.total?`${stat.done}/${stat.total}`:"—"}</span><div><b>{areaLabels[stat.area]}</b><small>{stat.total?"reflections answered":"No reflection prompts yet"}</small></div><i><em style={{width:`${stat.total?stat.done/stat.total*100:0}%`}}/></i></button>)}</div></section>
-    <div className="section-heading"><div><p className="eyebrow">A SMALL WORKING SET</p><h2>What matters now</h2></div><p>Up to three real actions—never a PSA disguised as work.</p></div>
-    <div className="suggestions">{suggested.map((item,index)=><ActionCard key={item.id} item={item} number={index+1} edit={edit} data={data} update={update}/>)}</div>
+    <div className="section-heading overview-now-heading"><div><p className="eyebrow">YOUR WORKING SET</p><h2>Three things are enough.</h2></div><p>These are the most useful actions now. Everything else can remain held by the plan.</p></div>
+    <div className="suggestions overview-first-actions">{suggested.map((item,index)=><ActionCard key={item.id} item={item} number={index+1} edit={edit} data={data} update={update}/>)}</div>
     <div className="overview-utilities"><button className="overwhelm" onClick={()=>setOverwhelmed(true)}><span>○</span><div><b>I feel overwhelmed</b><small>Show me just one kind next step.</small></div><i>→</i></button>{settled.length>0&&<details className="overview-completed"><summary><span>✓</span><div><b>Recently completed</b><small>{settled.length} quiet wins</small></div><i>⌄</i></summary><div>{settled.map(item=><button key={item.id} onClick={()=>edit(item)}>{item.title}<i>→</i></button>)}</div></details>}</div>
+    <section className="overview-dashboard"><div className={`overview-score progress-${completion<35?"low":completion<75?"medium":"high"}`}><span>{completion}%</span><div><small>REQUIRED PLAN COMPLETE</small><b>{complete} of {active.length} actions</b></div></div><div className="overview-progress-bars">{areaProgress.map(stat=><button key={stat.area} onClick={()=>goTo(stat.area)}><div><b>{areaLabels[stat.area]}</b><span>{stat.done}/{stat.total}</span></div><i><em style={{width:`${stat.percent}%`}}/></i></button>)}</div><button className="overview-hub-link" onClick={()=>goTo("Hub")}><b>Open the Progress Hub</b><span>Milestones, completion, and timeline →</span></button></section>
+    <OverviewDependencies data={data} edit={edit} goTo={goTo}/>
+    <details className="reflection-overview reflection-overview-collapsed"><summary><div><p className="eyebrow">INNER WORK</p><h2>Reflections are a different kind of progress.</h2><p>No deadlines and no task pressure. Open this only when you have reflective energy.</p></div><span>{reflectionProgress.reduce((sum,stat)=>sum+stat.done,0)} answered <i>⌄</i></span></summary><div>{reflectionProgress.map(stat=><button key={stat.area} onClick={()=>goTo(stat.area)}><span>{stat.total?`${stat.done}/${stat.total}`:"—"}</span><div><b>{areaLabels[stat.area]}</b><small>{stat.total?"reflections answered":"No reflection prompts yet"}</small></div><i><em style={{width:`${stat.total?stat.done/stat.total*100:0}%`}}/></i></button>)}</div></details>
     <p className="principle">One place to remember everything. <b>A few things to work on.</b> One life I am moving toward.</p>
   </div>;
 }
@@ -299,7 +295,8 @@ function ConnectionsPage({data,edit,goTo}:{data:MoveData;edit:(i:MoveItem)=>void
 }
 
 const sectionId=(section:string)=>`section-${section.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")}`;
-function AreaDashboard({area,data,update,goTo}:{area:Exclude<Area,"Vault">;data:MoveData;update:(d:MoveData)=>void;goTo:(page:Page)=>void}) {
+const groupId=(area:string,title:string)=>`group-${area.toLowerCase()}-${title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")}`;
+function AreaDashboard({area,data,goTo}:{area:Exclude<Area,"Vault">;data:MoveData;goTo:(page:Page)=>void}) {
   const items=data.items.filter(i=>i.area===area&&i.timing!=="Allowed to wait"&&!i.optional&&isAction(i));
   const complete=items.filter(isDone).length;
   const percent=items.length?Math.round(complete/items.length*100):0;
@@ -311,30 +308,16 @@ function AreaDashboard({area,data,update,goTo}:{area:Exclude<Area,"Vault">;data:
     Build:{label:"THE PURPOSE OF THE MOVE FOUNDATION",title:"Make the move credible, fundable, and housing-ready.",definition:"This phase joins income, credit, money, housing, health, and logistics into a foundation the move can actually stand on."},
     Become:{label:"THE PURPOSE OF LIFE AFTER THE MOVE",title:"Keep the future visible while the logistics take shape.",definition:"This phase protects the home, relationships, creativity, community, and ordinary life the practical plan is meant to make room for."},
   }[area];
-  const jumpToSection=(section:string)=>{
-    const target=document.getElementById(sectionId(section));
-    const group=target?.closest("details.area-work-group") as HTMLDetailsElement|null;
-    if(group&&!group.open) group.open=true;
+  const jumpToGroup=(title:string)=>{
+    const target=document.getElementById(groupId(area,title)) as HTMLDetailsElement|null;
+    if(target&&!target.open) target.open=true;
     requestAnimationFrame(()=>target?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
-  return <section className={`area-dashboard dashboard-${area.toLowerCase()}`}>
-    <div className="area-dashboard-summary">
-      <div className="area-definition"><small>{meanings.label}</small><h2>{meanings.title}</h2><p>{meanings.definition}</p></div>
-      <div className={`area-completion progress-${percent<35?"low":percent<75?"medium":"high"}`}><strong>{percent}%</strong><span>{complete} of {items.length} required actions complete</span></div>
-      <div className="area-reflection-count"><strong>{reflectionDone}/{reflectionTotal}</strong><span>reflections answered</span></div>
-    </div>
-    <nav className="area-toc grouped-toc" aria-label={`${areaLabels[area]} section overview`}>
-      <small>CHOOSE A SECTION TO VIEW ITS TASKS</small>
-      <div className="toc-groups">{areaGroups[area].map(group=>{
-        return <section key={group.title} className="toc-group">
-          <header><div><b>{group.title}</b><small>{group.copy}</small></div></header>
-          <div>{group.sections.map(section=>{const sectionItems=data.items.filter(i=>i.area===area&&i.section===section&&!i.optional&&isAction(i));const optional=data.items.filter(i=>i.area===area&&i.section===section&&i.optional&&isAction(i)).length;const sectionReflections=data.items.filter(i=>i.area===area&&i.section===section&&i.kind==="Reflection").length;const guidance=data.items.filter(i=>i.area===area&&i.section===section&&i.kind==="Reference").length;const done=sectionItems.filter(isDone).length;return <article className="toc-row" key={section}><button className="toc-jump" onClick={()=>jumpToSection(section)}><div className="toc-jump-copy"><b>{sectionLabels[section]||section}</b><div className="toc-metrics">{sectionItems.length>0&&<span className="toc-metric metric-actions"><strong>{done}/{sectionItems.length}</strong> required action{sectionItems.length===1?"":"s"}</span>}{optional>0&&<span className="toc-metric metric-optional"><strong>{optional}</strong> optional</span>}{sectionReflections>0&&<span className="toc-metric metric-reflections"><strong>✦ {sectionReflections}</strong> reflection{sectionReflections===1?"":"s"}</span>}{guidance>0&&<span className="toc-metric metric-guidance"><strong>FYI {guidance}</strong> reference{guidance===1?"":"s"}</span>}{!sectionItems.length&&!optional&&!sectionReflections&&!guidance&&<span className="toc-metric metric-guidance">Reference section</span>}</div></div><i>↓</i></button></article>})}
-            {group.apartmentTool&&<button className="toc-tool-link" onClick={()=>goTo("Apartments")}><span>TOOL</span><div><b>Apartment Matrix</b><small>Compare price, fit, qualification rules, sublets, and specials.</small></div><i>→</i></button>}
-            <details className="toc-date-editor"><summary><span>◷</span><b>Optional due date</b><i>⌄</i></summary><div>{group.sections.map(section=><label key={section}><span>{sectionLabels[section]||section}</span><input aria-label={`${sectionLabels[section]||section} target date`} type="date" value={data.sectionTargets[section]||""} onChange={e=>update({...data,sectionTargets:{...data.sectionTargets,[section]:e.target.value}})}/></label>)}</div></details>
-          </div>
-        </section>;
-      })}</div>
-    </nav>
+  return <section className={`area-dashboard area-orientation dashboard-${area.toLowerCase()}`}>
+    <div className="area-orientation-copy"><small>{meanings.label}</small><h2>{meanings.title}</h2><p>{meanings.definition}</p></div>
+    <div className="area-orientation-stats"><div className={`area-completion progress-${percent<35?"low":percent<75?"medium":"high"}`}><strong>{percent}%</strong><span>{complete}/{items.length} tasks complete</span></div>{reflectionTotal>0&&<div className="area-reflection-count"><strong>{reflectionDone}/{reflectionTotal}</strong><span>reflections explored</span></div>}</div>
+    <nav className="chapter-path" aria-label={`${areaLabels[area]} work groups`}><small>OPEN ONE PART OF THIS PHASE</small><div>{areaGroups[area].map((group,index)=>{const groupItems=data.items.filter(item=>item.area===area&&group.sections.includes(item.section)&&isAction(item)&&!item.optional);const groupDone=groupItems.filter(isDone).length;return <button key={group.title} onClick={()=>jumpToGroup(group.title)}><span>{index+1}</span><div><b>{group.title}</b><small>{groupItems.length?`${groupDone}/${groupItems.length} tasks complete`:"Planning and reference"}</small></div><i>↓</i></button>})}</div></nav>
+    {area==="Build"&&<button className="orientation-tool-link" onClick={()=>goTo("Apartments")}><span>APARTMENT TOOL</span><b>Compare homes in the Apartment Matrix</b><i>→</i></button>}
   </section>;
 }
 
@@ -371,16 +354,15 @@ function AreaPage({area,data,update,edit,goTo}:{area:Area;data:MoveData;update:(
   };
   return <div className={`page area-page area-${area.toLowerCase()}`}>
     <header className="area-page-heading"><div><h1>{intro[0]}</h1><p>{intro[1]}</p></div><aside><small>GOOD-ENOUGH RULE</small><p>{permission}</p></aside></header>
-    {area!=="Vault"&&<AreaDashboard area={area} data={data} update={update} goTo={goTo}/>}
+    {area!=="Vault"&&<AreaDashboard area={area} data={data} goTo={goTo}/>}
     {area==="Become" && <div className="fuel-first"><Fuel data={data} update={update}/></div>}
     <div className="area-work-groups">{areaGroups[area as Exclude<Area,"Vault">].map((group,index)=>{
       const groupItems=data.items.filter(item=>item.area===area&&group.sections.includes(item.section)&&isAction(item)&&!item.optional);
       const groupDone=groupItems.filter(isDone).length;
-      if(area==="Build") return <details className="area-work-group area-work-group-collapsible" key={group.title} open={index===0}>
+      return <details id={groupId(area,group.title)} className="area-work-group area-work-group-collapsible" key={group.title} open={index===0}>
         <summary className="area-work-group-toggle"><div><h2>{group.title}</h2><p>{group.copy}</p></div><span>{groupItems.length?`${groupDone}/${groupItems.length} required actions`: `${group.sections.length} planning area${group.sections.length===1?"":"s"}`}</span><i>⌄</i></summary>
-        <div className="area-work-group-body">{group.sections.map(renderSection)}</div>
+        <div className="area-work-group-body"><details className="group-date-editor"><summary>Optional due dates <i>⌄</i></summary><div>{group.sections.map(section=><label key={section}><span>{sectionLabels[section]||section}</span><input aria-label={`${sectionLabels[section]||section} target date`} type="date" value={data.sectionTargets[section]||""} onChange={e=>update({...data,sectionTargets:{...data.sectionTargets,[section]:e.target.value}})}/></label>)}</div></details>{group.sections.map(renderSection)}</div>
       </details>;
-      return <section className="area-work-group" key={group.title}><header><div><h2>{group.title}</h2><p>{group.copy}</p></div></header>{group.sections.map(renderSection)}</section>;
     })}</div>
   </div>;
 }
