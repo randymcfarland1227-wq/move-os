@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Sans, Outfit } from "next/font/google";
 import "./globals.css";
 
-const sans=DM_Sans({variable:"--font-sans",subsets:["latin"]});
-const display=Outfit({variable:"--font-serif",subsets:["latin"]});
 export const metadata:Metadata={
   title:"Randy's Move Plan",
   description:"A calm, dependency-aware companion for preparing a major move.",
@@ -13,5 +10,5 @@ export const metadata:Metadata={
   twitter:{card:"summary_large_image",title:"Randy's Move Plan",description:"A Chicago-first plan for income, credit, housing, and a softer landing.",images:["/og.png"]},
 };
 export default function RootLayout({children}:{children:React.ReactNode}) {
-  return <html lang="en"><body className={`${sans.variable} ${display.variable}`}>{children}</body></html>;
+  return <html lang="en"><body>{children}</body></html>;
 }
