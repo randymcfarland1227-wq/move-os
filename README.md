@@ -1,6 +1,6 @@
 # Randy’s Move OS
 
-Move OS is a calm, mobile-friendly home for planning the Chicago move. It is intentionally organized around only two phases—**Pre-Move** and **Post-Move**—and three kinds of work:
+Move OS is a calm, mobile-friendly external memory and decision-support system for Randy’s move. Chicago is currently leading while Denver and remote routes remain open. The everyday plan still uses only two phases—**Pre-Move** and **Post-Move**—and three kinds of work:
 
 - **Goals** are outcomes and never appear as checkboxes.
 - **Projects** organize multi-step work and show child-task progress.
@@ -28,7 +28,12 @@ GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-
 
 ## What is included
 
-- A focused Home view with four next actions, waiting items, quiet status rows, and the move countdown
+- A focused Home view with at most four next actions, a compact North Star, working move window, watch items, and settled decisions
+- Six permanent readiness questions covering cash flow, rental proof, housing, timing, the physical move, and landing continuity
+- Route tracking that keeps primary, parallel, and backup possibilities visible without turning all of them into current tasks
+- A Cash Flow tool that separates available, confirmed, expected, pending, estimated, and unknown money
+- Conservative and projected move positions, editable cash accounts, recurring entries, and manual resale balances
+- Universal **Capture something** for a task, decision, working assumption, or watch item
 - One flowing Pre-Move and Post-Move action list with timing filters and a compact Money / Work / Home / Moving / Life filter
 - A separate Full Plan view for optional work, completed history, projects, goals, and reflections
 - Clear, lightweight visual separation between Goals, Projects, Tasks, optional work, decisions, and references
@@ -40,7 +45,7 @@ GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-
 
 ## Existing data and migration
 
-The browser key remains `move-os-v1`, so existing saved information is not reset. On load, schema 9 safely maps the earlier Clear / Build / Become, stage, stream, relationship, and status fields into the new phase / type / area model. Legacy fields remain optional in the stored objects for backward compatibility, but they are no longer required or exposed as the everyday interface.
+The browser key remains `move-os-v1`, so existing saved information is not reset. On load, schema 10 safely maps earlier schemas into the current phase/type/area model and adds the readiness, route, decision, assumption, watch, and cash-flow records. Legacy fields remain optional for backward compatibility, but they are no longer required in the everyday interface.
 
 Apartments, move money, profile details, dates, completion state, notes, references, and parent/dependency links are preserved.
 
@@ -48,7 +53,7 @@ Apartments, move money, profile details, dates, completion state, notes, referen
 
 The UI continues to use the `MoveRepository` boundary. Without a Sheet connection, `LocalMoveRepository` keeps a safe browser copy. When a deployed Apps Script URL is entered in **Settings → Move Action Items sync**, `GoogleSheetsMoveRepository` reads and writes the action rows while the browser copy acts as an offline fallback.
 
-The Sheet tab should be named `Move Action Items` and supports these core columns:
+The action tab should be named `Move Action Items` and supports these core columns:
 
 `ID`, `Title`, `Phase`, `Type`, `Area`, `Status`, `Parent ID`, `Due Date`, `Notes`, `Current Value`, `Target Value`, `Unit`, `Blocker`, `Importance`, `Sort Order`, `Completed At`
 
@@ -60,6 +65,17 @@ To connect it:
 4. Paste the deployed web app URL into Move OS Settings.
 
 Stable IDs are used for updates so editing an item does not create duplicate rows. If the Sheet cannot be reached, the interface clearly shows that sync is pending and preserves the change locally.
+
+The supplied Apps Script also creates two compact system tabs when needed:
+
+- `Move Context` stores the move profile plus readiness gates, routes, decisions, assumptions, and watch items as JSON.
+- `Move Cash Flow` stores accounts, incoming/outgoing entries, and resale balances as JSON.
+
+This keeps the existing action rows readable while still making Google Sheets the future shared persistence layer. Components only talk to the `MoveRepository`; they never call browser storage or Google Sheets directly.
+
+## Resale Hub integration
+
+Version 1 includes a deliberately disconnected `ResaleHubProvider` boundary. Manual eBay, Poshmark, and Depop balances work now. Available money and pending money remain separate, and pending balances are excluded from the projection unless explicitly included. When the Resale Hub exposes a stable balance endpoint, a connected provider can replace the placeholder without changing the Cash Flow screens.
 
 ## Privacy
 

@@ -1,3 +1,6 @@
+import type { CashFlowPlan } from "./domain/cash-flow";
+import type { MoveAssumption, MoveDecision, MoveRoute, ReadinessGate, WatchItem } from "./domain/readiness";
+
 export type MovePhase = "Pre-Move" | "Post-Move";
 export type ItemType = "Goal" | "Project" | "Task";
 export type Status = "Not Started" | "In Progress" | "Blocked" | "Done";
@@ -65,6 +68,8 @@ export interface MoveProfile {
   phase: string;
   currentUnlock: string;
   protectedMonth: boolean;
+  moveWindowStatus?: "Working Window" | "Confirmed Date";
+  workingMoveWindow?: string;
 }
 
 export interface MoveFund {
@@ -104,6 +109,12 @@ export interface MoveData {
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
   sectionTargets: Record<string, string>; calendarTargets: Record<string, string>;
   apartments: ApartmentListing[]; hideCompleted: boolean;
+  readiness: ReadinessGate[];
+  moveRoutes: MoveRoute[];
+  decisions: MoveDecision[];
+  assumptions: MoveAssumption[];
+  watches: WatchItem[];
+  cashFlow: CashFlowPlan;
 }
 
 export type SyncMode = "local" | "sheet" | "offline";

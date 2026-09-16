@@ -1,4 +1,5 @@
 import type { MoveData, MoveItem, MovePhase, Status, SyncState, WorkArea } from "./types";
+import type { CashFlowPlan } from "./domain/cash-flow";
 import { seedData } from "./data";
 
 export interface MoveRepository {
@@ -45,7 +46,7 @@ const workAreaFor=(item:Partial<MoveItem>):WorkArea=>{
   return "Admin";
 };
 
-const normalizeItem=(raw:Partial<MoveItem>&Pick<MoveItem,"id"|"title">,index:number):MoveItem=>{
+export const normalizeItem=(raw:Partial<MoveItem>&Pick<MoveItem,"id"|"title">,index:number):MoveItem=>{
   const type=raw.type&&["Goal","Project","Task"].includes(raw.type)?raw.type:goalIds.has(raw.id)?"Goal":projectIds.has(raw.id)?"Project":"Task";
   const title=raw.id==="credit-plan"?"Rental Credit Readiness":raw.id==="income-evidence"?"Housing-Ready Income":raw.id==="lease"?"Secure a Home":raw.title;
   return {
@@ -87,7 +88,7 @@ const normalizeItem=(raw:Partial<MoveItem>&Pick<MoveItem,"id"|"title">,index:num
   };
 };
 
-const sheetRowToItem=(row:SheetRow,index:number):MoveItem=>normalizeItem({
+export const sheetRowToItem=(row:SheetRow,index:number):MoveItem=>normalizeItem({
   id:String(row.ID),title:String(row.Title||"Untitled"),phase:row.Phase as MoveItem["phase"],type:row.Type as MoveItem["type"],workArea:row.Area as MoveItem["workArea"],status:row.Status as MoveItem["status"],
   parentId:row["Parent ID"]||undefined,dueDate:row["Due Date"]||undefined,notes:row.Notes||undefined,blocker:row.Blocker||undefined,importance:row.Importance as MoveItem["importance"],sortOrder:Number(row["Sort Order"])||index,completedAt:row["Completed At"]||undefined,
   metric:row["Current Value"]!==undefined||row["Target Value"]!==undefined||row.Unit?{current:row["Current Value"]===""?undefined:Number(row["Current Value"]),target:row["Target Value"]===""?undefined:Number(row["Target Value"]),unit:row.Unit||undefined}:undefined,
@@ -99,13 +100,19 @@ function isoDate(){return new Date().toISOString().slice(0,10)}
 export const migrateMoveData=(stored:Partial<MoveData>):MoveData=>{
   const base=structuredClone(seedData);
   const rawItems=Array.isArray(stored.items)?stored.items:base.items;
+  const legacyMoveFund={...base.moveFund,...stored.moveFund};
+  const cashFlow:CashFlowPlan=stored.cashFlow?{
+    accounts:stored.cashFlow.accounts||base.cashFlow.accounts,
+    entries:stored.cashFlow.entries||base.cashFlow.entries,
+    resaleBalances:stored.cashFlow.resaleBalances||base.cashFlow.resaleBalances,
+  }:{...base.cashFlow,accounts:[{id:"move-fund-account",label:"Move fund",balance:legacyMoveFund.current,updatedAt:legacyMoveFund.confirmedAt||isoDate()}]};
   return {
     ...base,
     ...stored,
-    schemaVersion:9,
+    schemaVersion:10,
     profile:{...base.profile,...stored.profile},
     items:rawItems.map((item,index)=>normalizeItem(item,index)),
-    moveFund:{...base.moveFund,...stored.moveFund},
+    moveFund:legacyMoveFund,
     money:stored.money?.length?stored.money:base.money,
     routes:stored.routes?.length?stored.routes:base.routes,
     vault:stored.vault||base.vault,
@@ -114,6 +121,12 @@ export const migrateMoveData=(stored:Partial<MoveData>):MoveData=>{
     calendarTargets:{...base.calendarTargets,...stored.calendarTargets},
     apartments:stored.apartments||base.apartments,
     hideCompleted:stored.hideCompleted??true,
+    readiness:stored.readiness?.length?base.readiness.map(gate=>({...gate,...stored.readiness?.find(saved=>saved.id===gate.id),title:gate.title,question:gate.question})):base.readiness,
+    moveRoutes:stored.moveRoutes?.length?stored.moveRoutes:base.moveRoutes,
+    decisions:stored.decisions||base.decisions,
+    assumptions:stored.assumptions||base.assumptions,
+    watches:stored.watches||base.watches,
+    cashFlow,
   };
 };
 
@@ -142,13 +155,14 @@ export class GoogleSheetsMoveRepository implements MoveRepository {
     try{
       const response=await fetch(this.endpoint,{headers:{Accept:"application/json"}});
       if(!response.ok) throw new Error(`Sheet returned ${response.status}`);
-      const payload=await response.json() as {data?:MoveData;items?:SheetRow[]}|MoveData;
+      const payload=await response.json() as {data?:MoveData;items?:SheetRow[];context?:Partial<MoveData>;cashFlow?:CashFlowPlan}|MoveData;
       let data:MoveData;
       const sheetRows=(payload as {items?:SheetRow[]}).items;
       if(Array.isArray(sheetRows)&&sheetRows.every(row=>"ID" in row)){
         const local=await this.local.load();
         const support=local.items.filter(item=>item.kind==="Reference"||item.kind==="Reflection");
-        data={...local,items:[...sheetRows.map(sheetRowToItem),...support.filter(item=>!sheetRows.some(row=>row.ID===item.id))],schemaVersion:9};
+        const context=(payload as {context?:Partial<MoveData>}).context||{};
+        data=migrateMoveData({...local,...context,cashFlow:(payload as {cashFlow?:CashFlowPlan}).cashFlow||local.cashFlow,items:[...sheetRows.map(sheetRowToItem),...support.filter(item=>!sheetRows.some(row=>row.ID===item.id))]});
       }else data=migrateMoveData("data" in payload&&payload.data?payload.data:payload as MoveData);
       await this.local.save(data);
       this.state={mode:"sheet",label:"Move Action Items connected",lastSyncedAt:new Date().toISOString(),pending:false};
@@ -163,7 +177,8 @@ export class GoogleSheetsMoveRepository implements MoveRepository {
     this.state={...this.state,pending:true};
     try{
       const rows=data.items.filter(item=>!item.kind||item.kind==="Action").map(itemToSheetRow);
-      const response=await fetch(this.endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({sheet:"Move Action Items",rows})});
+      const context={profile:data.profile,readiness:data.readiness,moveRoutes:data.moveRoutes,decisions:data.decisions,assumptions:data.assumptions,watches:data.watches};
+      const response=await fetch(this.endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({sheet:"Move Action Items",rows,context,cashFlow:data.cashFlow})});
       if(!response.ok) throw new Error(`Sheet returned ${response.status}`);
       this.state={mode:"sheet",label:"Move Action Items connected",lastSyncedAt:new Date().toISOString(),pending:false};
     }catch(error){

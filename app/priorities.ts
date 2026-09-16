@@ -11,9 +11,16 @@ export const blocker=(item:MoveItem,all:MoveItem[])=>{
   return prerequisite&&!isDone(prerequisite)?`Waiting for ${prerequisite.title}`:undefined;
 };
 
-export const taskScore=(item:MoveItem,all:MoveItem[])=>{
-  if(!isAction(item)||isDone(item)||item.optional||item.schedule==="Later"||blocker(item,all)) return -1000;
+export interface RecommendationOptions { suppressedItemIds?: string[]; }
+
+export const taskScore=(item:MoveItem,all:MoveItem[],options:RecommendationOptions={})=>{
+  if(!isAction(item)||isDone(item)||item.optional||item.schedule==="Later"||blocker(item,all)||options.suppressedItemIds?.includes(item.id)) return -1000;
   let value=0;
+  const language=`${item.title} ${item.description}`.toLowerCase();
+  if(/fee|legal|claim|payment|overdue|damage/.test(language)) value+=52;
+  if(item.workArea==="Housing"||/landlord|rental|apartment|income proof|verification/.test(language)) value+=44;
+  if(item.workArea==="Income"||/job|role|employment|apply/.test(language)) value+=38;
+  if(/medication|prescription|refill|provider|pharmacy|continuity/.test(language)) value+=42;
   if(item.status==="In Progress") value+=35;
   if(item.importance==="Important") value+=28;
   if(item.unlocks?.length) value+=Math.min(item.unlocks.length*10,30);
@@ -29,9 +36,9 @@ export const taskScore=(item:MoveItem,all:MoveItem[])=>{
   return value-(item.sortOrder||0)/1000;
 };
 
-export const recommendations=(items:MoveItem[],limit=5)=>items
-  .filter(item=>taskScore(item,items)>-1000)
-  .sort((a,b)=>taskScore(b,items)-taskScore(a,items))
+export const recommendations=(items:MoveItem[],limit=5,options:RecommendationOptions={})=>items
+  .filter(item=>taskScore(item,items,options)>-1000)
+  .sort((a,b)=>taskScore(b,items,options)-taskScore(a,items,options))
   .slice(0,limit);
 
 export const childProgress=(item:MoveItem,all:MoveItem[])=>{

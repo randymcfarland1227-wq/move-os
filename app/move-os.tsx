@@ -4,9 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import type { ApartmentListing, ApartmentStatus, HousingType, ItemType, MoveData, MoveItem, MovePhase, Schedule, Status, SyncState, VaultEntry, WorkArea } from "./types";
 import { getSheetEndpoint, moveRepository, setSheetEndpoint } from "./repository";
 import { blocker, childProgress, isAction, isDone, isWorkItem, recommendations, taskScore } from "./priorities";
+import { HomeDashboard } from "./components/home/HomeDashboard";
+import { ReadinessDetail } from "./components/readiness/ReadinessDetail";
+import { CashFlowTool } from "./components/cash-flow/CashFlowTool";
+import { CaptureModal } from "./components/capture/CaptureModal";
 
-type Page="Home"|"Pre-Move"|"Post-Move"|"FullPlan"|"Apartments"|"MoveFund"|"JobSearch"|"References"|"Settings";
-type PhaseFilter="All"|"Now"|"This Week"|"Later"|"Waiting"|"Done"|"First 72 Hours"|"First Week"|"First Month";
+type Page="Home"|"Pre-Move"|"Post-Move"|"FullPlan"|"Apartments"|"CashFlow"|"Readiness"|"MoveFund"|"JobSearch"|"References"|"Settings";
+type PhaseFilter="All"|"Active"|"Now"|"This Week"|"Later"|"Waiting"|"Done"|"First 72 Hours"|"First Week"|"First Month";
 type SurfaceArea="All areas"|"Money"|"Work"|"Home"|"Moving"|"Life";
 
 const preAreas:WorkArea[]=["Money","Income","Housing","Packing","Logistics","Health + Marvel","Admin","People + Closure"];
@@ -23,7 +27,7 @@ const displayDestination=(value:string)=>value.split("·")[0].trim();
 const money=(value:number)=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(value);
 const supporting=(item:MoveItem)=>item.kind==="Reference"||item.kind==="Reflection";
 const phaseAreas=(phase:MovePhase)=>phase==="Pre-Move"?preAreas:postAreas;
-const filterLabel=(phase:MovePhase):PhaseFilter[]=>phase==="Pre-Move"?["All","Now","This Week","Later","Waiting","Done"]:["All","First 72 Hours","First Week","First Month","Later","Waiting","Done"];
+const filterLabel=(phase:MovePhase):PhaseFilter[]=>phase==="Pre-Move"?["Active","Waiting","Later","Done"]:["First 72 Hours","First Week","First Month","Later","Done"];
 const surfaceArea=(item:MoveItem):Exclude<SurfaceArea,"All areas">=>item.workArea==="Money"?"Money":item.workArea==="Income"?"Work":item.workArea==="Housing"||item.workArea==="Home Setup"?"Home":item.workArea==="Packing"||item.workArea==="Logistics"?"Moving":"Life";
 const surfaceAreas:SurfaceArea[]=["All areas","Money","Work","Home","Moving","Life"];
 
@@ -36,6 +40,8 @@ export function MoveOS(){
   const [editing,setEditing]=useState<MoveItem|null>(null);
   const [adding,setAdding]=useState<MoveItem|null>(null);
   const [searchOpen,setSearchOpen]=useState(false);
+  const [captureOpen,setCaptureOpen]=useState(false);
+  const [selectedReadiness,setSelectedReadiness]=useState("income-proof");
   const [dark,setDark]=useState(false);
   const [sync,setSync]=useState<SyncState>(moveRepository.getSyncState());
   const ready=useRef(false);
@@ -57,23 +63,26 @@ export function MoveOS(){
       </nav>
       <div className="header-tools">
         <button className="search-button" onClick={()=>setSearchOpen(true)}><span>⌕</span><b>Search</b><kbd>⌘K</kbd></button>
-        <div className="utility-menu"><button aria-label="Open utilities">•••</button><div><button onClick={()=>openPage("FullPlan")}>View full plan</button><button onClick={()=>openPage("Apartments")}>Apartment Search</button><button onClick={()=>openPage("References")}>References</button><button onClick={()=>openPage("Settings")}>Settings</button></div></div>
-        <button className="quick-add" onClick={()=>setAdding(newItem("Task",currentPhase))}>＋ Add</button>
+        <div className="utility-menu"><button aria-label="Open utilities">•••</button><div><button onClick={()=>openPage("FullPlan")}>View full plan</button><button onClick={()=>openPage("CashFlow")}>Cash Flow</button><button onClick={()=>openPage("Apartments")}>Apartment Search</button><button onClick={()=>openPage("References")}>References</button><button onClick={()=>openPage("Settings")}>Settings</button></div></div>
+        <button className="quick-add" onClick={()=>setCaptureOpen(true)}>＋ Capture</button>
       </div>
     </header>
     <main>
-      {page==="Home"&&<Home data={data} update={setData} edit={setEditing} go={openPage}/>}
+      {page==="Home"&&<HomeDashboard data={data} update={setData} editItem={setEditing} openReadiness={id=>{setSelectedReadiness(id);openPage("Readiness")}} openPreMove={()=>openPage("Pre-Move")} openCashFlow={()=>openPage("CashFlow")} openApartments={()=>openPage("Apartments")} openReferences={()=>openPage("References")}/>}
       {(page==="Pre-Move"||page==="Post-Move")&&<PhasePage phase={page} data={data} update={setData} edit={setEditing} add={(type,area)=>setAdding({...newItem(type,page),...(area?{workArea:area}:{})})} go={openPage}/>}
       {page==="FullPlan"&&<FullPlan data={data} update={setData} edit={setEditing} go={openPage}/>}
       {page==="Apartments"&&<ApartmentMatrix data={data} update={setData} back={()=>openPage("Pre-Move")}/>}
+      {page==="CashFlow"&&<CashFlowTool plan={data.cashFlow} onChange={cashFlow=>setData({...data,cashFlow,moveFund:{...data.moveFund,current:cashFlow.accounts.reduce((sum,account)=>sum+account.balance,0)}})} back={()=>openPage("Home")}/>}
+      {page==="Readiness"&&<ReadinessDetail gateId={selectedReadiness} data={data} update={setData} editItem={setEditing} back={()=>openPage("Home")} openCashFlow={()=>openPage("CashFlow")}/>}
       {page==="MoveFund"&&<MoveFundPage data={data} update={setData} back={()=>openPage("Pre-Move")}/>}
       {page==="JobSearch"&&<JobSearchPage data={data} update={setData} back={()=>openPage("Pre-Move")}/>}
       {page==="References"&&<ReferencesPage data={data} update={setData} edit={setEditing}/>}
       {page==="Settings"&&<SettingsPage data={data} update={setData} dark={dark} setDark={setDark} sync={sync}/>}
     </main>
-    <nav className="mobile-nav" aria-label="Mobile navigation">{(["Home","Pre-Move","Post-Move"] as Page[]).map(tab=><button key={tab} className={page===tab?"active":""} onClick={()=>openPage(tab)}><span>{tab==="Home"?"⌂":tab==="Pre-Move"?"→":"✦"}</span>{tab.replace("-"," ")}</button>)}<button onClick={()=>setAdding(newItem("Task",currentPhase))}><span>＋</span>Add</button></nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation">{(["Home","Pre-Move","Post-Move"] as Page[]).map(tab=><button key={tab} className={page===tab?"active":""} onClick={()=>openPage(tab)}><span>{tab==="Home"?"⌂":tab==="Pre-Move"?"→":"✦"}</span>{tab.replace("-"," ")}</button>)}<button onClick={()=>setCaptureOpen(true)}><span>＋</span>Capture</button></nav>
     {searchOpen&&<Search data={data} close={()=>setSearchOpen(false)} edit={item=>{setEditing(item);setSearchOpen(false)}} go={next=>{openPage(next);setSearchOpen(false)}}/>}
     {(editing||adding)&&<ItemEditor item={editing||adding!} all={data.items} onClose={()=>{setEditing(null);setAdding(null)}} onSave={saved=>{updateItem(saved);setEditing(null);setAdding(null)}} onDelete={editing?()=>{deleteItem(editing.id);setEditing(null)}:undefined} onOpen={setEditing}/>}
+    {captureOpen&&<CaptureModal data={data} save={setData} close={()=>setCaptureOpen(false)}/>}
   </div>;
 }
 
@@ -99,7 +108,7 @@ function Home({data,update,edit,go}:{data:MoveData;update:(data:MoveData)=>void;
 }
 
 function PhasePage({phase,data,update,edit,add,go}:{phase:MovePhase;data:MoveData;update:(data:MoveData)=>void;edit:(item:MoveItem)=>void;add:(type:ItemType,area?:WorkArea)=>void;go:(page:Page)=>void}){
-  const [filter,setFilter]=useState<PhaseFilter>("All");
+  const [filter,setFilter]=useState<PhaseFilter>(phase==="Pre-Move"?"Active":"First 72 Hours");
   const [area,setArea]=useState<SurfaceArea>("All areas");
   const work=data.items.filter(item=>item.phase===phase&&isWorkItem(item));
   const inArea=(item:MoveItem)=>area==="All areas"||surfaceArea(item)===area;
@@ -107,23 +116,20 @@ function PhasePage({phase,data,update,edit,add,go}:{phase:MovePhase;data:MoveDat
   const later=work.filter(item=>!isDone(item)&&item.schedule==="Later"&&!item.optional);
   const optional=work.filter(item=>!isDone(item)&&item.optional);
   let visible:MoveItem[];
-  if(filter==="All"){
-    const tasks=recommendations(work.filter(inArea),5);
-    const activeStructure=work.filter(item=>inArea(item)&&!item.optional&&!isDone(item)&&item.type!=="Task"&&item.status==="In Progress");
-    visible=[...tasks,...activeStructure.filter(item=>!tasks.some(task=>task.id===item.id))].slice(0,6);
+  if(filter==="Active"){
+    visible=work.filter(item=>inArea(item)&&item.type==="Task"&&!item.optional&&!isDone(item)&&item.schedule!=="Later"&&!blocker(item,data.items)).sort((a,b)=>taskScore(b,data.items)-taskScore(a,data.items));
   }else visible=work.filter(item=>{
     if(!inArea(item)||item.optional)return false;
     if(filter==="Done")return isDone(item);
     if(filter==="Waiting")return !isDone(item)&&(item.status==="Blocked"||!!blocker(item,data.items));
     return !isDone(item)&&item.schedule===filter;
   }).sort((a,b)=>taskScore(b,data.items)-taskScore(a,data.items));
-  const heading=filter==="All"?"Next":filter;
+  const heading=filter;
   return <div className="page simple-phase">
-    <header className="simple-phase-head"><p className="kicker">{phase.toUpperCase()}</p><h1>{phase==="Pre-Move"?"What still needs attention before Chicago.":"What will help the new life settle in."}</h1></header>
+    <header className="simple-phase-head"><p className="kicker">{phase.toUpperCase()}</p><h1>{phase==="Pre-Move"?"The deeper workspace for what must happen before leaving.":"Captured for later—you do not need to solve this yet."}</h1></header>
     <div className="simple-controls"><div className="filter-row" role="group" aria-label={`${phase} filters`}>{filterLabel(phase).map(value=><button key={value} className={filter===value?"active":""} onClick={()=>setFilter(value)}>{value}</button>)}</div><label className="area-filter"><span>Area</span><select value={area} onChange={event=>setArea(event.target.value as SurfaceArea)}>{surfaceAreas.map(value=><option key={value}>{value}</option>)}</select></label></div>
-    <section className="flow-section"><header><h2>{heading}</h2><span>{visible.length} {visible.length===1?"item":"items"}</span></header><div className="flat-list">{visible.map(item=><FlatWorkItem key={item.id} item={item} all={data.items} data={data} update={update} edit={edit}/>)}{!visible.length&&<Empty copy={filter==="All"?"Nothing is asking for attention right now.":`No ${filter.toLowerCase()} items in this view.`}/>}</div></section>
-    {filter==="All"&&<div className="quiet-queues"><button onClick={()=>setFilter("Later")}><span>Later</span><b>{later.length} items</b><i>View →</i></button><button onClick={()=>setFilter("Waiting")}><span>Waiting</span><b>{waiting.length} items</b><i>View →</i></button><button onClick={()=>go("FullPlan")}><span>Optional</span><b>{optional.length} items</b><i>View →</i></button></div>}
-    {phase==="Pre-Move"&&<ToolsStrip data={data} go={go}/>}
+    <section className="flow-section"><header><h2>{heading}</h2><span>{visible.length} {visible.length===1?"item":"items"}</span></header><div className="flat-list">{visible.map(item=><FlatWorkItem key={item.id} item={item} all={data.items} data={data} update={update} edit={edit}/>)}{!visible.length&&<Empty copy={filter==="Active"?"No actionable tasks here right now.":phase==="Post-Move"?"This is already captured for later.":`No ${filter.toLowerCase()} items in this view.`}/>}</div></section>
+    {filter==="Active"&&<div className="quiet-queues"><button onClick={()=>setFilter("Later")}><span>Later</span><b>{later.length} items</b><i>View →</i></button><button onClick={()=>setFilter("Waiting")}><span>Waiting</span><b>{waiting.length} items</b><i>View →</i></button><button onClick={()=>go("FullPlan")}><span>Optional</span><b>{optional.length} items</b><i>View →</i></button></div>}
     {phase==="Post-Move"&&<button className="reflection-link" onClick={()=>go("FullPlan")}><span>Personal compass</span><b>Reflections stay separate from tasks.</b><i>Open →</i></button>}
     <button className="simple-add" onClick={()=>add("Task")}>＋ Add a task</button>
   </div>;
@@ -276,7 +282,8 @@ function Search({data,close,edit,go}:{data:MoveData;close:()=>void;edit:(item:Mo
   const itemResults=normalized?data.items.filter(item=>[item.title,item.description,item.notes,item.workArea].some(value=>value?.toLowerCase().includes(normalized))).slice(0,10):recommendations(data.items,6);
   const apartments=normalized?data.apartments.filter(home=>[home.name,home.city,home.neighborhood,home.notes].some(value=>value.toLowerCase().includes(normalized))).slice(0,4):[];
   const refs=normalized?data.vault.filter(entry=>[entry.title,entry.notes,entry.category].some(value=>value.toLowerCase().includes(normalized))).slice(0,4):[];
-  return <div className="overlay" onMouseDown={event=>event.currentTarget===event.target&&close()}><section className="search-dialog" role="dialog" aria-modal="true"><header><span>⌕</span><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search the whole move…"/><button onClick={close}>×</button></header><div className="search-results"><small>{normalized?"RESULTS":"SUGGESTED NEXT ACTIONS"}</small>{itemResults.map(item=><button key={item.id} onClick={()=>edit(item)}><span>{item.type==="Goal"?"◎":item.type==="Project"?"◇":"○"}</span><div><b>{item.title}</b><small>{item.type} · {item.workArea}</small></div><i>→</i></button>)}{apartments.map(home=><button key={home.id} onClick={()=>go("Apartments")}><span>⌂</span><div><b>{home.name}</b><small>{home.neighborhood} · {home.city}</small></div><i>→</i></button>)}{refs.map(entry=><button key={entry.id} onClick={()=>go("References")}><span>↗</span><div><b>{entry.title}</b><small>Reference · {entry.category}</small></div><i>→</i></button>)}{normalized&&!itemResults.length&&!apartments.length&&!refs.length&&<Empty copy="No matching move information found."/>}</div></section></div>;
+  const context=normalized?[...data.decisions.map(item=>({...item,resultType:"Decision",copy:item.selected})),...data.assumptions.map(item=>({...item,resultType:"Assumption",copy:item.value})),...data.watches.map(item=>({...item,resultType:"Watch",copy:item.reason}))].filter(item=>`${item.title} ${item.copy}`.toLowerCase().includes(normalized)).slice(0,6):[];
+  return <div className="overlay" onMouseDown={event=>event.currentTarget===event.target&&close()}><section className="search-dialog" role="dialog" aria-modal="true"><header><span>⌕</span><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search the whole move…"/><button onClick={close}>×</button></header><div className="search-results"><small>{normalized?"RESULTS":"SUGGESTED NEXT ACTIONS"}</small>{itemResults.map(item=><button key={item.id} onClick={()=>edit(item)}><span>{item.type==="Goal"?"◎":item.type==="Project"?"◇":"○"}</span><div><b>{item.title}</b><small>{item.type} · {item.workArea}</small></div><i>→</i></button>)}{context.map(item=><button key={item.id} onClick={()=>go("References")}><span>·</span><div><b>{item.title}</b><small>{item.resultType} · {item.copy}</small></div><i>→</i></button>)}{apartments.map(home=><button key={home.id} onClick={()=>go("Apartments")}><span>⌂</span><div><b>{home.name}</b><small>{home.neighborhood} · {home.city}</small></div><i>→</i></button>)}{refs.map(entry=><button key={entry.id} onClick={()=>go("References")}><span>↗</span><div><b>{entry.title}</b><small>Reference · {entry.category}</small></div><i>→</i></button>)}{normalized&&!itemResults.length&&!apartments.length&&!refs.length&&!context.length&&<Empty copy="No matching move information found."/>}</div></section></div>;
 }
 
 function ApartmentMatrix({data,update,back}:{data:MoveData;update:(data:MoveData)=>void;back:()=>void}){
@@ -294,7 +301,7 @@ function ApartmentEditor({home,save,close,remove}:{home:ApartmentListing;save:(h
 
 function ReferencesPage({data,update,edit}:{data:MoveData;update:(data:MoveData)=>void;edit:(item:MoveItem)=>void}){
   const [draft,setDraft]=useState<VaultEntry|null>(null);const context=data.items.filter(supporting);
-  return <div className="page references-page"><section className="tool-heading"><div><p className="kicker">REFERENCES</p><h1>Helpful context, kept out of the task list.</h1><p>Rules, reminders, links, and reflections live here or attach to the work they support.</p></div><Button kind="primary" onClick={()=>setDraft({id:crypto.randomUUID(),title:"",category:"Notes",url:"",date:isoToday(),notes:""})}>＋ Add a reference</Button></section><div className="reference-grid">{context.map(item=><button key={item.id} onClick={()=>edit(item)}><span>{item.kind==="Reflection"?"REFLECTION":"HELPFUL NOTE"}</span><h2>{item.title}</h2><p>{item.description}</p>{item.referenceFor?.length?<small>Attached to {item.referenceFor.length} {item.referenceFor.length===1?"item":"items"}</small>:null}</button>)}{data.vault.map(entry=><article key={entry.id}><span>{entry.category.toUpperCase()}</span><h2>{entry.title}</h2><p>{entry.notes}</p><div>{entry.url&&entry.url!=="#"?<a href={entry.url} target="_blank" rel="noreferrer">Open ↗</a>:<span/>}<button onClick={()=>update({...data,vault:data.vault.filter(candidate=>candidate.id!==entry.id)})}>Remove</button></div></article>)}</div>{draft&&<div className="overlay"><form className="modal compact-modal" onSubmit={event=>{event.preventDefault();update({...data,vault:[...data.vault,draft]});setDraft(null)}}><header className="modal-head"><div><small>REFERENCE</small><h2>Add helpful context</h2></div><button type="button" onClick={()=>setDraft(null)}>×</button></header><Field label="Title"><input required value={draft.title} onChange={event=>setDraft({...draft,title:event.target.value})}/></Field><Field label="Category"><input value={draft.category} onChange={event=>setDraft({...draft,category:event.target.value})}/></Field><Field label="Link"><input type="url" value={draft.url} onChange={event=>setDraft({...draft,url:event.target.value})}/></Field><Field label="Notes"><textarea value={draft.notes} onChange={event=>setDraft({...draft,notes:event.target.value})}/></Field><footer className="modal-actions"><span/><Button onClick={()=>setDraft(null)}>Cancel</Button><Button kind="primary" type="submit">Save</Button></footer></form></div>}</div>;
+  return <div className="page references-page"><section className="tool-heading"><div><p className="kicker">REFERENCES & MEMORY</p><h1>Helpful context, kept out of the task list.</h1><p>Decisions, working assumptions, watches, rules, links, and reflections live here without becoming more work.</p></div><Button kind="primary" onClick={()=>setDraft({id:crypto.randomUUID(),title:"",category:"Notes",url:"",date:isoToday(),notes:""})}>＋ Add a reference</Button></section><div className="reference-grid">{data.decisions.map(item=><article key={item.id} className="memory-reference"><span>DECIDED</span><h2>{item.title}</h2><p>{item.selected}</p><small>{item.reason}</small></article>)}{data.assumptions.map(item=><article key={item.id} className="memory-reference"><span>{item.confidence.toUpperCase()} ASSUMPTION</span><h2>{item.title}</h2><p>{item.value}</p><small>{item.notes}</small></article>)}{data.watches.map(item=><article key={item.id} className="memory-reference"><span>{item.state.toUpperCase()}</span><h2>{item.title}</h2><p>{item.reason}</p></article>)}{context.map(item=><button key={item.id} onClick={()=>edit(item)}><span>{item.kind==="Reflection"?"REFLECTION":"HELPFUL NOTE"}</span><h2>{item.title}</h2><p>{item.description}</p>{item.referenceFor?.length?<small>Attached to {item.referenceFor.length} {item.referenceFor.length===1?"item":"items"}</small>:null}</button>)}{data.vault.map(entry=><article key={entry.id}><span>{entry.category.toUpperCase()}</span><h2>{entry.title}</h2><p>{entry.notes}</p><div>{entry.url&&entry.url!=="#"?<a href={entry.url} target="_blank" rel="noreferrer">Open ↗</a>:<span/>}<button onClick={()=>update({...data,vault:data.vault.filter(candidate=>candidate.id!==entry.id)})}>Remove</button></div></article>)}</div>{draft&&<div className="overlay"><form className="modal compact-modal" onSubmit={event=>{event.preventDefault();update({...data,vault:[...data.vault,draft]});setDraft(null)}}><header className="modal-head"><div><small>REFERENCE</small><h2>Add helpful context</h2></div><button type="button" onClick={()=>setDraft(null)}>×</button></header><Field label="Title"><input required value={draft.title} onChange={event=>setDraft({...draft,title:event.target.value})}/></Field><Field label="Category"><input value={draft.category} onChange={event=>setDraft({...draft,category:event.target.value})}/></Field><Field label="Link"><input type="url" value={draft.url} onChange={event=>setDraft({...draft,url:event.target.value})}/></Field><Field label="Notes"><textarea value={draft.notes} onChange={event=>setDraft({...draft,notes:event.target.value})}/></Field><footer className="modal-actions"><span/><Button onClick={()=>setDraft(null)}>Cancel</Button><Button kind="primary" type="submit">Save</Button></footer></form></div>}</div>;
 }
 
 function SettingsPage({data,update,dark,setDark,sync}:{data:MoveData;update:(data:MoveData)=>void;dark:boolean;setDark:(value:boolean)=>void;sync:SyncState}){
