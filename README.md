@@ -28,14 +28,13 @@ GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-
 
 ## What is included
 
-- A focused Home command center with Next Actions, major Goals, blockers, and upcoming dates
-- Pre-Move work grouped into Money, Income, Housing, Packing, Logistics, Health + Marvel, Admin, and People + Closure
-- Post-Move work grouped into Home Setup, Admin, Money, Health + Marvel, Community, and Settling In
-- A quiet overwhelmed mode that shows no more than three tasks and one goal
-- Clear visual separation between Goals, Projects, Tasks, optional work, decisions, and references
-- Move Fund and supporting cost buckets inside Pre-Move / Money
-- Employment routes inside Pre-Move / Income
-- Apartment Search inside Pre-Move / Housing, including approval rules, fees, deposits, pet and parking costs, sublets, and specials
+- A focused Home view with four next actions, waiting items, quiet status rows, and the move countdown
+- One flowing Pre-Move and Post-Move action list with timing filters and a compact Money / Work / Home / Moving / Life filter
+- A separate Full Plan view for optional work, completed history, projects, goals, and reflections
+- Clear, lightweight visual separation between Goals, Projects, Tasks, optional work, decisions, and references
+- Dedicated Apartment Search, Move Fund, and Job Search tools that stay out of the daily task list
+- Apartment comparisons including approval rules, fees, deposits, pet and parking costs, sublets, and specials
+- A quick task editor that opens with only title, area, due date, and status; organization details stay under More options
 - Universal search, quick add, References, Settings, light/dark themes, and JSON backup
 - Responsive layouts built for phone, tablet, embedded, and desktop widths
 
