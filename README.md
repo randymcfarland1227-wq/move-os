@@ -21,6 +21,22 @@ npm run lint
 npm test
 ```
 
+## GitHub Pages
+
+The GitHub repository is the canonical source for Move OS. Pushes to `main`
+automatically build and publish the static app through the Pages workflow in
+`.github/workflows/deploy-pages.yml`.
+
+To verify that version locally:
+
+```bash
+npm run build:pages
+npm run preview:pages
+```
+
+The published app continues to store its Version 1 data in the browser. Moving
+the site to GitHub does not upload or expose any saved Move OS data.
+
 ## Version 1
 
 - Today dashboard centered on the current income, credit, and housing reality
