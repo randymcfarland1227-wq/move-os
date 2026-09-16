@@ -1,25 +1,41 @@
 import type { MoveItem } from "./types";
 
-const weights = { Safety:100, Money:90, Income:80, Housing:70, Deadline:60, Relief:35, Someday:5 };
-export const isDone = (item: MoveItem) => item.status === "Completed";
-export const isAction = (item: MoveItem) => !item.kind || item.kind === "Action";
-export const blocker = (item: MoveItem, all: MoveItem[]) => {
-  if (!item.dependency || item.relationship !== "Hard dependency") return undefined;
-  const dependency = all.find(candidate => candidate.id === item.dependency);
-  return dependency && !isDone(dependency) ? `Waiting for “${dependency.title}”` : undefined;
+export const isDone=(item:MoveItem)=>item.status==="Done";
+export const isAction=(item:MoveItem)=>(!item.kind||item.kind==="Action")&&item.type==="Task";
+export const isWorkItem=(item:MoveItem)=>!item.kind||item.kind==="Action";
+
+export const blocker=(item:MoveItem,all:MoveItem[])=>{
+  if(item.blocker) return item.blocker;
+  if(!item.dependency) return undefined;
+  const prerequisite=all.find(candidate=>candidate.id===item.dependency);
+  return prerequisite&&!isDone(prerequisite)?`Waiting for ${prerequisite.title}`:undefined;
 };
-export const score = (item: MoveItem, all: MoveItem[]) => {
-  if (isDone(item) || item.status === "Deferred" || item.optional || item.timing === "Allowed to wait" || blocker(item, all)) return -100;
-  let value = weights[item.priority];
-  value += (item.unlocks?.length || 0) * 12;
-  if (item.dueDate) {
-    const days = (new Date(item.dueDate).getTime() - Date.now()) / 86400000;
-    if (days < 30) value += 25;
+
+export const taskScore=(item:MoveItem,all:MoveItem[])=>{
+  if(!isAction(item)||isDone(item)||item.optional||item.schedule==="Later"||blocker(item,all)) return -1000;
+  let value=0;
+  if(item.status==="In Progress") value+=35;
+  if(item.importance==="Important") value+=28;
+  if(item.unlocks?.length) value+=Math.min(item.unlocks.length*10,30);
+  if(item.dueDate){
+    const days=Math.ceil((new Date(`${item.dueDate}T23:59:59`).getTime()-Date.now())/86400000);
+    if(days<0) value+=100;
+    else if(days<=3) value+=70;
+    else if(days<=7) value+=50;
+    else if(days<=21) value+=20;
   }
-  if (item.status === "In motion") value += 8;
-  return value;
+  if(item.schedule==="Now") value+=24;
+  if(item.schedule==="This Week") value+=12;
+  return value-(item.sortOrder||0)/1000;
 };
-export const recommendations = (items: MoveItem[]) =>
-  (["Clear","Build","Become"] as const).map(area =>
-    items.filter(item => item.area === area && isAction(item) && !isDone(item) && score(item,items)>-100).sort((a,b) => score(b,items) - score(a,items))[0]
-  ).filter(Boolean) as MoveItem[];
+
+export const recommendations=(items:MoveItem[],limit=5)=>items
+  .filter(item=>taskScore(item,items)>-1000)
+  .sort((a,b)=>taskScore(b,items)-taskScore(a,items))
+  .slice(0,limit);
+
+export const childProgress=(item:MoveItem,all:MoveItem[])=>{
+  const children=all.filter(candidate=>candidate.parentId===item.id&&isWorkItem(candidate));
+  const tasks=children.flatMap(child=>child.type==="Task"?[child]:all.filter(candidate=>candidate.parentId===child.id&&candidate.type==="Task"&&isWorkItem(candidate)));
+  return {done:tasks.filter(isDone).length,total:tasks.length};
+};

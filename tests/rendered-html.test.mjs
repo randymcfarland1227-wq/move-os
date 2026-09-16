@@ -5,9 +5,9 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 
-test("build contains Randy's move-plan metadata", async () => {
+test("build contains Randy's Move OS metadata", async () => {
   const worker = await readFile(resolve(root, "dist/server/index.js"), "utf8");
-  assert.match(worker, /Randy's Move Plan/);
+  assert.match(worker, /Randy's Move OS/);
   assert.match(worker, /Chicago-first plan/);
   assert.doesNotMatch(worker, /codex-preview/);
 });
@@ -19,8 +19,11 @@ test("product source contains core interaction and repository boundaries", async
     readFile(resolve(root, "app/priorities.ts"), "utf8"),
   ]);
   assert.match(app, /I feel overwhelmed/);
-  assert.match(app, /Export all data/);
+  assert.match(app, /Export JSON/);
+  assert.match(app, /Pre-Move/);
+  assert.match(app, /Post-Move/);
   assert.match(repository, /interface MoveRepository/);
   assert.match(repository, /LocalMoveRepository/);
+  assert.match(repository, /GoogleSheetsMoveRepository/);
   assert.match(priority, /Waiting for/);
 });

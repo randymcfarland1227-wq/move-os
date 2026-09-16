@@ -1,10 +1,38 @@
-import type { MoveData, MoveItem } from "./types";
+import type { Area, MoveData, MoveItem, Priority, Timing, WorkArea } from "./types";
 
 const today = new Date().toISOString().slice(0,10);
-const item=(partial:Partial<MoveItem>&Pick<MoveItem,"id"|"title"|"area"|"section">):MoveItem=>({description:"",status:"Not started",priority:"Relief",timing:"Prepare early",stage:"Prepare",stream:"Clear",relationship:"Parallel",knowledgeStatus:"Known",kind:"Action",createdAt:today,updatedAt:today,...partial});
+type SeedItem = Omit<Partial<MoveItem>,"status"|"area"|"priority"|"timing"|"phase"|"type"|"workArea"|"importance"> & Pick<MoveItem,"id"|"title"> & {
+  area: Area; section: string; status?: string; priority?: Priority; timing?: Timing;
+};
+const goalIds = new Set(["credit-plan","income-evidence","lease"]);
+const projectIds = new Set(["family-plan","remote-search","chicago-hybrid","denver-hybrid","application-packet","move-plan","utilities","holiday-plan"]);
+const statusFor=(status?:string):MoveItem["status"]=>status==="Completed"?"Done":status==="In motion"?"In Progress":status==="Blocked"||status==="Waiting"?"Blocked":"Not Started";
+const phaseFor=(partial:SeedItem):MoveItem["phase"]=>partial.area==="Become"||partial.section==="Post Arrival"||partial.timing==="After arrival"||partial.timing==="First 72 hours"?"Post-Move":"Pre-Move";
+const areaFor=(partial:SeedItem):WorkArea=>{
+  if(partial.area==="Become") return partial.section==="Community and Belonging"||partial.section==="People and Relationships"?"Community":"Settling In";
+  if(partial.section==="Post Arrival") return "Admin";
+  if(partial.section==="Post-Move Income") return "Income";
+  if(["Rental Readiness","Preferences in Search","Getting a Place"].includes(partial.section)) return "Housing";
+  if(partial.section==="Physical Move — Pre") return "Packing";
+  if(partial.section==="Physical Move"||partial.section==="Car, Documents and Responsibilities") return "Logistics";
+  if(partial.section==="Pre-Move") return partial.id==="holiday-plan"?"Money":"Health + Marvel";
+  if(partial.section==="Money, Credit and Old Obligations"||partial.section==="Allowed to Wait") return "Money";
+  if(partial.section==="Family: What I Can Help With"||partial.section==="Closure Before I Leave") return "People + Closure";
+  return "Admin";
+};
+const item=(partial:SeedItem):MoveItem=>{
+  const type=goalIds.has(partial.id)?"Goal":projectIds.has(partial.id)?"Project":"Task";
+  const title=partial.id==="credit-plan"?"Rental Credit Readiness":partial.id==="income-evidence"?"Housing-Ready Income":partial.id==="lease"?"Secure a Home":partial.title;
+  return {
+    description:"",importance:partial.optional?"Normal":["Safety","Income","Housing","Deadline","Money"].includes(partial.priority||"")?"Important":"Normal",
+    phase:phaseFor(partial),type,workArea:areaFor(partial),schedule:partial.timing==="Now"?"Now":partial.timing==="Allowed to wait"||partial.timing==="After the lease"?"Later":partial.timing==="First 72 hours"?"First 72 Hours":partial.timing==="After arrival"?"First Month":"This Week",
+    kind:"Action",createdAt:today,updatedAt:today,...partial,title,status:statusFor(partial.status),
+    metric:partial.id==="credit-plan"?{target:625,unit:"credit score"}:partial.metric,
+  };
+};
 
 export const seedData:MoveData={
-  schemaVersion:8,hideCompleted:false,
+  schemaVersion:9,hideCompleted:true,
   profile:{reason:"I am building a life with more privacy, creativity, nature, meaningful connection, and financial peace.",destination:"Chicago first · Denver remains a backup",targetMoveDate:"2026-10-24",backupDate:"2026-10-31",phase:"Rebuild income · strengthen credit · compare homes",currentUnlock:"Build two forms of apartment evidence in parallel: verified new income and a 625+ credit score.",protectedMonth:true},
   sectionTargets:{"Money, Credit and Old Obligations":"2026-09-30","Car, Documents and Responsibilities":"2026-10-15","Family: What I Can Help With":"2026-10-15","Closure Before I Leave":"2026-10-20","Allowed to Wait":"2026-10-24","Timeline":"2026-10-24","Move Money":"2026-10-15","Post-Move Income":"2026-09-30","Rental Readiness":"2026-10-05","Preferences in Search":"2026-09-20","Getting a Place":"2026-10-15","Pre-Move":"2026-10-20","Post Arrival":"2026-11-07","Physical Move — Pre":"2026-10-20","Physical Move":"2026-10-24","The Life I Want":"2026-11-23","People and Relationships":"2026-10-20","Spiritual Preparation":"2026-10-24","Community and Belonging":"2026-11-30","Flowering Period: First 30 Days":"2026-11-23"},
   calendarTargets:{ground:"2026-09-15",test:"2026-10-05",commit:"2026-10-24",land:"2026-11-23"},
@@ -32,7 +60,7 @@ export const seedData:MoveData={
     item({id:"denver-hybrid",parentId:"income-evidence",optional:true,title:"Keep a Denver hybrid search available as a backup",description:"Give Denver less attention than Chicago unless the evidence changes.",area:"Build",section:"Post-Move Income",priority:"Income",timing:"Prepare early",stage:"Prepare",stream:"Income",relationship:"Deferred decision",knowledgeStatus:"Decided"}),
     item({id:"income-proof",parentId:"income-evidence",title:"Save housing-usable income verification",description:"Keep the signed offer letter with compensation or the required new-role paystubs ready for applications.",area:"Build",section:"Rental Readiness",priority:"Housing",timing:"Prepare early",stage:"Commit",stream:"Housing",relationship:"Helpful sequence",knowledgeStatus:"Waiting on event"}),
     item({id:"property-rules",kind:"Reference",referenceFor:["application-packet","apartments","lease"],title:"Rules for a real candidate property",description:"Verify income around 2.5–3× rent, the 625+ credit target, $50–$100 application fees, deposit, pet and parking costs, plus any move-in special. Never assume a generic rule is the property’s final rule.",area:"Build",section:"Rental Readiness",priority:"Housing",timing:"Now",stage:"Prepare",stream:"Housing",relationship:"Informational",knowledgeStatus:"Need information"}),
-    item({id:"application-packet",title:"Compile the rental-verification packet",description:"Prepare identification and income evidence. Decide whether a standard lease or sublet is the more realistic route; sublets may require fewer verifications.",area:"Build",section:"Rental Readiness",priority:"Housing",timing:"Prepare early",stage:"Prepare",stream:"Housing"}),
+    item({id:"application-packet",parentId:"lease",title:"Prepare the rental application",description:"Gather identification and income evidence, then compare the actual approval route for a standard lease or sublet.",area:"Build",section:"Rental Readiness",priority:"Housing",timing:"Prepare early",stage:"Prepare",stream:"Housing",decision:{prompt:"Which housing route fits the evidence I will have?",options:["Standard lease","Sublet"]}}),
     item({id:"apartments",kind:"Reflection",referenceFor:["lease"],title:"Explore Chicago first and Denver second",description:"Learn which neighborhoods support safety, people my age, gay community, music, a nearby gym, dog access, parking, privacy, and natural light.",area:"Build",section:"Preferences in Search",priority:"Housing",timing:"Prepare early",stage:"Prepare",stream:"Housing"}),
     item({id:"apartment-shortlist",kind:"Reflection",parentId:"apartments",referenceFor:["lease"],title:"Define the desired qualities of the new home",description:"Charm is flexible; safety, dog access, parking, privacy, gym access, natural light, location, space, and size guide comparison.",area:"Build",section:"Preferences in Search",priority:"Housing",timing:"Prepare early",stage:"Prepare",stream:"Housing",relationship:"Helpful sequence",knowledgeStatus:"Decided"}),
     item({id:"lease",title:"Apply, review, and sign the lease",description:"Commit only after verified income, a 625+ credit path, true monthly cost, pet rules, fees, utilities, and move procedures are understood. Compare leases, sublets, and specials.",area:"Build",section:"Getting a Place",priority:"Housing",timing:"Prepare early",dependency:"income-evidence",stage:"Commit",stream:"Housing",relationship:"Hard dependency",knowledgeStatus:"Waiting on event",unlocks:["utilities","move-plan"]}),

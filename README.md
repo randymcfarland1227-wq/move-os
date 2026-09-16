@@ -1,88 +1,67 @@
-# Move OS
+# Randy’s Move OS
 
-Move OS is a calm, responsive companion for preparing a major move. It keeps the full plan in one place while surfacing only a few useful actions at a time.
+Move OS is a calm, mobile-friendly home for planning the Chicago move. It is intentionally organized around only two phases—**Pre-Move** and **Post-Move**—and three kinds of work:
+
+- **Goals** are outcomes and never appear as checkboxes.
+- **Projects** organize multi-step work and show child-task progress.
+- **Tasks** are concrete actions that can actually be completed.
 
 ## Run locally
 
-Requirements: Node.js 22.13 or newer.
+Requires Node.js 22.13 or newer.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
-
-For a production check:
-
-```bash
-npm run build
-npm run lint
-npm test
-```
-
-## GitHub Pages
-
-The GitHub repository is the canonical source for Move OS. Pushes to `main`
-automatically build and publish the static app through the Pages workflow in
-`.github/workflows/deploy-pages.yml`.
-
-To verify that version locally:
+The GitHub Pages version can be checked with:
 
 ```bash
 npm run build:pages
 npm run preview:pages
 ```
 
-The published app continues to store its Version 1 data in the browser. Moving
-the site to GitHub does not upload or expose any saved Move OS data.
+## Publishing
 
-## Version 1
+GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-pages.yml` and publishes the static app to GitHub Pages.
 
-- Today dashboard centered on the current income, credit, and housing reality
-- Central progress Hub, calendar, and constellation-style connection map
-- Apartment Search Matrix for Chicago-first and Denver-backup comparisons, including standard leases, sublets, approval rules, desired qualities, rent, application fees, deposits, pet/parking costs, other move-in costs, and verified specials
-- Parent projects with editable subtasks and calm completion summaries
-- Explicit relationship types, including true blockers, parallel work, decision gates, and deferred decisions
-- Supportive overwhelmed mode
-- Dependency-aware items with plain-language blockers
-- Clear, Build, Become, Vault, and Settings areas
-- Remote, Chicago-hybrid, and Denver-backup employment routes; move-money buckets; Move Day timeline; and protected first month
-- Workbook-traceable financial buckets with explicit Known, Estimate, Need to think, Need information, Waiting on event, Decided, and Not applicable states
-- Required actions, optional actions, unscored reflection, and attached decision guidance
-- Completed actions cross out and soften; a global control can hide them while preserving their data
-- Create, edit, complete, and delete items and apartment candidates
-- Light and dark themes
-- Local browser persistence
-- Complete JSON export and import
-- Responsive sidebar, tablet layout, and mobile navigation
+## What is included
 
-The included seed data is a categorized snapshot of the August 21, 2026 **Move OS Action Items** sheet plus the current scope supplied alongside it. Sheet rows explicitly described as FYIs, self-discovery, conditional, or not physical tasks are represented as guidance, reflection, or optional actions instead of required work. The current source snapshot removes earlier Element-employer assumptions and treats Chicago as the leading destination.
+- A focused Home command center with Next Actions, major Goals, blockers, and upcoming dates
+- Pre-Move work grouped into Money, Income, Housing, Packing, Logistics, Health + Marvel, Admin, and People + Closure
+- Post-Move work grouped into Home Setup, Admin, Money, Health + Marvel, Community, and Settling In
+- A quiet overwhelmed mode that shows no more than three tasks and one goal
+- Clear visual separation between Goals, Projects, Tasks, optional work, decisions, and references
+- Move Fund and supporting cost buckets inside Pre-Move / Money
+- Employment routes inside Pre-Move / Income
+- Apartment Search inside Pre-Move / Housing, including approval rules, fees, deposits, pet and parking costs, sublets, and specials
+- Universal search, quick add, References, Settings, light/dark themes, and JSON backup
+- Responsive layouts built for phone, tablet, embedded, and desktop widths
 
-## Data and privacy
+## Existing data and migration
 
-Version 1 stores data only in the current browser via `localStorage`. The Vault intentionally accepts only titles, links, dates, categories, and notes. Do not enter Social Security numbers, full account numbers, passwords, medical document contents, or other highly sensitive information.
+The browser key remains `move-os-v1`, so existing saved information is not reset. On load, schema 9 safely maps the earlier Clear / Build / Become, stage, stream, relationship, and status fields into the new phase / type / area model. Legacy fields remain optional in the stored objects for backward compatibility, but they are no longer required or exposed as the everyday interface.
 
-## Architecture
+Apartments, move money, profile details, dates, completion state, notes, references, and parent/dependency links are preserved.
 
-Components work with the `MoveRepository` interface rather than calling browser storage directly. `LocalMoveRepository` is the Version 1 implementation.
+## Move Action Items Google Sheet
 
-A future `GoogleSheetsMoveRepository` can implement the same interface against one **Move Database** spreadsheet with these anticipated tabs:
+The UI continues to use the `MoveRepository` boundary. Without a Sheet connection, `LocalMoveRepository` keeps a safe browser copy. When a deployed Apps Script URL is entered in **Settings → Move Action Items sync**, `GoogleSheetsMoveRepository` reads and writes the action rows while the browser copy acts as an offline fallback.
 
-- Items
-- Money
-- Timeline
-- Employment
-- Housing
-- Home
-- People
-- Reflections
-- Reference
+The Sheet tab should be named `Move Action Items` and supports these core columns:
 
-That integration should map Sheet rows to the types in `app/types.ts`, keep repository methods as the boundary, and leave the UI components unchanged. Google authentication and Sheets access are deliberately outside Version 1.
+`ID`, `Title`, `Phase`, `Type`, `Area`, `Status`, `Parent ID`, `Due Date`, `Notes`, `Current Value`, `Target Value`, `Unit`, `Blocker`, `Importance`, `Sort Order`, `Completed At`
 
-The responsive layout is designed to remain usable when embedded in Google Sites at tablet-like widths.
+To connect it:
 
-## Recommendation rules
+1. Open the Google Sheet and choose **Extensions → Apps Script**.
+2. Paste the contents of `docs/move-action-items-apps-script.gs`.
+3. Deploy it as a web app that the site can access.
+4. Paste the deployed web app URL into Move OS Settings.
 
-The transparent scoring logic lives in `app/priorities.ts`. It favors safety and legality, prevention of financial damage, income, housing approval, deadlines, steps that unlock other work, and meaningful relief. It suppresses completed, deferred, optional, blocked, and **Allowed to wait** work. Reflection and decision guidance never enter completion percentages or recommendations.
+Stable IDs are used for updates so editing an item does not create duplicate rows. If the Sheet cannot be reached, the interface clearly shows that sync is pending and preserves the change locally.
+
+## Privacy
+
+Move OS is not a place for Social Security numbers, passwords, full account numbers, or medical-document contents. Store only the planning details needed for the move. JSON exports contain all Move OS data and should be handled as personal files.
