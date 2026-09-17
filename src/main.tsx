@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { MoveOS } from "../app/move-os";
 import "../app/globals.css";
 import "../app/system.css";
+import "../app/plans.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

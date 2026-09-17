@@ -28,12 +28,12 @@ GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-
 
 ## What is included
 
-- A focused Home view with at most four next actions, a compact North Star, working move window, watch items, and settled decisions
-- Six permanent readiness questions covering cash flow, rental proof, housing, timing, the physical move, and landing continuity
+- A focused Home view: move header with the working move window, Current Focus (up to five tasks, pinned tasks first), The Big Plan, Recent Progress, and compact tools
+- Four planning workspaces—Cash Flow for the Move, Get Approved & Secure a Home, Physical Move Plan, and Medication & Essential Continuity—each with an outcome, requirements, routes, what I already know, open questions, an action plan (Now / Next / When X happens / Later), waiting items, completed work, and decisions. Every part is editable.
 - Route tracking that keeps primary, parallel, and backup possibilities visible without turning all of them into current tasks
 - A Cash Flow tool that separates available, confirmed, expected, pending, estimated, and unknown money
 - Conservative and projected move positions, editable cash accounts, recurring entries, and manual resale balances
-- Universal **Capture something** for a task, decision, working assumption, or watch item
+- Universal **Capture** for a task, decision, working assumption, question to figure out, or something to remember—optionally filed under a plan
 - One flowing Pre-Move and Post-Move action list with timing filters and a compact Money / Work / Home / Moving / Life filter
 - A separate Full Plan view for optional work, completed history, projects, goals, and reflections
 - Clear, lightweight visual separation between Goals, Projects, Tasks, optional work, decisions, and references
@@ -45,7 +45,7 @@ GitHub is the canonical source. A push to `main` runs `.github/workflows/deploy-
 
 ## Existing data and migration
 
-The browser key remains `move-os-v1`, so existing saved information is not reset. On load, schema 10 safely maps earlier schemas into the current phase/type/area model and adds the readiness, route, decision, assumption, watch, and cash-flow records. Legacy fields remain optional for backward compatibility, but they are no longer required in the everyday interface.
+The browser key remains `move-os-v1`, so existing saved information is not reset. On load, schema 11 safely maps earlier schemas into planning workspaces: readiness gates become plans, routes/watches/decisions gain plan context, known tasks gain a plan and plan section, and the move window becomes profile context. Legacy fields remain optional for backward compatibility, but they are no longer required in the everyday interface.
 
 Apartments, move money, profile details, dates, completion state, notes, references, and parent/dependency links are preserved.
 
@@ -68,7 +68,7 @@ Stable IDs are used for updates so editing an item does not create duplicate row
 
 The supplied Apps Script also creates two compact system tabs when needed:
 
-- `Move Context` stores the move profile plus readiness gates, routes, decisions, assumptions, and watch items as JSON.
+- `Move Context` stores the move profile plus plans, plan sections, requirements, routes, questions, guides, decisions, assumptions, and watch items as JSON. Action rows also carry Plan ID, Plan Section ID, Route ID, Requirement ID, Action Stage, Trigger, and Pinned columns.
 - `Move Cash Flow` stores accounts, incoming/outgoing entries, and resale balances as JSON.
 
 This keeps the existing action rows readable while still making Google Sheets the future shared persistence layer. Components only talk to the `MoveRepository`; they never call browser storage or Google Sheets directly.

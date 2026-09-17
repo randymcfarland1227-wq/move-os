@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./system.css";
+import "./plans.css";
 
 export const metadata:Metadata={
   title:"Randy's Move OS",

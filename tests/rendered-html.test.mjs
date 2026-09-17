@@ -27,6 +27,7 @@ test("product source contains core interaction and repository boundaries", async
     readFile(resolve(root, "app/priorities.ts"), "utf8"),
   ]);
   assert.match(app, /HomeDashboard/);
+  assert.match(app, /PlanDetail/);
   assert.match(app, /CashFlowTool/);
   assert.match(app, /CaptureModal/);
   assert.match(app, /Export JSON/);

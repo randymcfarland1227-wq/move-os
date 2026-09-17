@@ -1,5 +1,5 @@
 import type { CashFlowPlan } from "./domain/cash-flow";
-import type { MoveAssumption, MoveDecision, MoveRoute, ReadinessGate, WatchItem } from "./domain/readiness";
+import type { ActionStage, MoveAssumption, MoveDecision, MovePlan, PlanGuide, PlanQuestion, PlanRequirement, PlanRoute, PlanSection, WatchItem } from "./domain/plans";
 
 export type MovePhase = "Pre-Move" | "Post-Move";
 export type ItemType = "Goal" | "Project" | "Task";
@@ -58,6 +58,16 @@ export interface MoveItem {
   stream?: MoveStream;
   relationship?: RelationshipType;
   knowledgeStatus?: KnowledgeStatus;
+
+  // Planning context: which plan this advances, and where in that plan it sits.
+  planId?: string;
+  planSectionId?: string;
+  routeId?: string;
+  requirementId?: string;
+  actionStage?: ActionStage;
+  triggerText?: string;
+  triggerRequirementId?: string;
+  pinnedToFocus?: boolean;
 }
 
 export interface MoveProfile {
@@ -70,6 +80,9 @@ export interface MoveProfile {
   protectedMonth: boolean;
   moveWindowStatus?: "Working Window" | "Confirmed Date";
   workingMoveWindow?: string;
+  moveWindowReason?: string;
+  moveWindowNotes?: string;
+  confirmedMoveDate?: string;
 }
 
 export interface MoveFund {
@@ -109,8 +122,12 @@ export interface MoveData {
   routes: EmploymentRoute[]; vault: VaultEntry[]; reflections: Reflection[];
   sectionTargets: Record<string, string>; calendarTargets: Record<string, string>;
   apartments: ApartmentListing[]; hideCompleted: boolean;
-  readiness: ReadinessGate[];
-  moveRoutes: MoveRoute[];
+  plans: MovePlan[];
+  planSections: PlanSection[];
+  planRequirements: PlanRequirement[];
+  planRoutes: PlanRoute[];
+  planQuestions: PlanQuestion[];
+  planGuides: PlanGuide[];
   decisions: MoveDecision[];
   assumptions: MoveAssumption[];
   watches: WatchItem[];

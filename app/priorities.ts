@@ -20,7 +20,7 @@ export const taskScore=(item:MoveItem,all:MoveItem[],options:RecommendationOptio
   if(/fee|legal|claim|payment|overdue|damage/.test(language)) value+=52;
   if(item.workArea==="Housing"||/landlord|rental|apartment|income proof|verification/.test(language)) value+=44;
   if(item.workArea==="Income"||/job|role|employment|apply/.test(language)) value+=38;
-  if(/medication|prescription|refill|provider|pharmacy|continuity/.test(language)) value+=42;
+  if(/medication|vyvanse|prescription|refill|provider|pharmacy|continuity/.test(language)) value+=42;
   if(item.status==="In Progress") value+=35;
   if(item.importance==="Important") value+=28;
   if(item.unlocks?.length) value+=Math.min(item.unlocks.length*10,30);
