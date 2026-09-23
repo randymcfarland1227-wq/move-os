@@ -12,6 +12,7 @@ import { MAX_PINNED, currentFocus, planContext, stageOf, triggerLabel } from "./
 import type { ActionStage } from "./domain/plans";
 import { CashFlowTool } from "./components/cash-flow/CashFlowTool";
 import { CaptureModal } from "./components/capture/CaptureModal";
+import { attachMoveLifeHubBridge, postMoveSnapshot } from "./life-hub-bridge";
 
 type Page="Home"|"Pre-Move"|"Post-Move"|"FullPlan"|"Apartments"|"CashFlow"|"Plan"|"MoveFund"|"JobSearch"|"References"|"Settings";
 type PhaseFilter="All"|"Active"|"Now"|"This Week"|"Later"|"Waiting"|"Done"|"First 72 Hours"|"First Week"|"First Month";
@@ -54,6 +55,17 @@ export function MoveOS(){
   useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light"},[dark]);
   useEffect(()=>{window.scrollTo({top:0,behavior:"instant" as ScrollBehavior})},[page]);
   useEffect(()=>{const key=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="k"){event.preventDefault();setSearchOpen(true)}if(event.key==="Escape")setSearchOpen(false)};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)},[]);
+  // Life Hub iframe/popup bridge — pins map to starred/featured; Done marks tasks complete.
+  const dataRef = useRef<MoveData | null>(null);
+  dataRef.current = data;
+  useEffect(() => attachMoveLifeHubBridge({
+    getData: () => dataRef.current,
+    setData: (next) => setData(current => {
+      if (!current) return current;
+      return typeof next === "function" ? (next as (c: MoveData) => MoveData)(current) : next;
+    }),
+  }), []);
+  useEffect(() => { if (data && ready.current) postMoveSnapshot(data); }, [data]);
   if(!data)return <div className="loading"><span/><p>Gathering the plan…</p></div>;
   const updateItem=(saved:MoveItem)=>setData(current=>current&&({...current,items:current.items.some(item=>item.id===saved.id)?current.items.map(item=>item.id===saved.id?saved:item):[...current.items,saved]}));
   const deleteItem=(id:string)=>setData(current=>current&&({...current,items:current.items.filter(item=>item.id!==id).map(item=>item.parentId===id?{...item,parentId:undefined}:item)}));
