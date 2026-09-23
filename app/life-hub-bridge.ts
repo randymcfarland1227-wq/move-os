@@ -77,9 +77,9 @@ export function buildMoveSnapshot(data: MoveData): LifeHubSnapshot {
   return {
     source: MOVE_SOURCE,
     metrics: {
-      sessions: done.length,
-      streak: pinned.length,
-      planned: open.length,
+      openTasks: open.length,
+      completedTasks: done.length,
+      pinnedFocus: pinned.length,
     },
     featured,
     tasks,
