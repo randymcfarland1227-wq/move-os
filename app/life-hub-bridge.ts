@@ -4,9 +4,19 @@ import type { MoveData, MoveItem } from "./types";
 import { toggleDone, togglePin } from "./domain/plans";
 import { isDone } from "./priorities";
 
-export const LIFE_HUB_ORIGIN = "https://frontier-work-room.randymcfarland1227.workers.dev";
+/** Allowed Life Hub parent origins (GitHub Pages primary + legacy Worker). */
+export const LIFE_HUB_ORIGINS = [
+  "https://randymcfarland1227-wq.github.io",
+  "https://frontier-work-room.randymcfarland1227.workers.dev",
+] as const;
+/** Default target for proactive posts — Pages origin (path-agnostic). */
+export const LIFE_HUB_ORIGIN = LIFE_HUB_ORIGINS[0];
 export const MOVE_SOURCE = "move" as const;
 const ORIGIN_URL = "https://randymcfarland1227-wq.github.io/move-os/";
+
+export function isLifeHubOrigin(origin: string) {
+  return (LIFE_HUB_ORIGINS as readonly string[]).includes(origin);
+}
 
 export type LifeHubFeatured = {
   id: string;
@@ -79,15 +89,18 @@ export function buildMoveSnapshot(data: MoveData): LifeHubSnapshot {
 
 export function postMoveSnapshot(data: MoveData, target?: MessageEventSource | null, origin = LIFE_HUB_ORIGIN) {
   const message = { type: "randys-workroom:snapshot" as const, payload: buildMoveSnapshot(data) };
+  const fanout = origin === LIFE_HUB_ORIGIN ? [...LIFE_HUB_ORIGINS] : [origin];
   try {
     if (target && "postMessage" in target) (target as Window).postMessage(message, { targetOrigin: origin });
   } catch { /* ignore closed targets */ }
-  try {
-    if (window.opener && !window.opener.closed) window.opener.postMessage(message, origin);
-  } catch { /* ignore */ }
-  try {
-    if (window.parent !== window) window.parent.postMessage(message, origin);
-  } catch { /* ignore */ }
+  for (const o of fanout) {
+    try {
+      if (window.opener && !window.opener.closed) window.opener.postMessage(message, o);
+    } catch { /* ignore */ }
+    try {
+      if (window.parent !== window) window.parent.postMessage(message, o);
+    } catch { /* ignore */ }
+  }
 }
 
 type BridgeHandlers = {
@@ -98,7 +111,7 @@ type BridgeHandlers = {
 /** Listen for Life Hub request / complete / star. Returns cleanup. */
 export function attachMoveLifeHubBridge(handlers: BridgeHandlers) {
   const onMessage = (event: MessageEvent) => {
-    if (event.origin !== LIFE_HUB_ORIGIN) return;
+    if (!isLifeHubOrigin(event.origin)) return;
     const type = event.data?.type;
     if (type === "randys-workroom:request") {
       const data = handlers.getData();
