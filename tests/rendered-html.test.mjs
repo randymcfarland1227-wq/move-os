@@ -17,6 +17,10 @@ test("build contains Randy's Move OS metadata", async () => {
   assert.match(html, /Randy's Move OS/);
   assert.match(bundle, /Chicago leading/);
   assert.match(bundle, /Working move window/);
+  assert.match(bundle, /Three goals first/);
+  assert.match(bundle, /Can I do this now\?/);
+  assert.match(bundle, /Locked for now/);
+  assert.match(bundle, /Dr. Dipo/);
   assert.doesNotMatch(html + bundle, /codex-preview/);
 });
 

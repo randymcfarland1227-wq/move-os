@@ -1,4 +1,5 @@
 import type { MoveData, MoveItem } from "../types";
+import { lockReason } from "./gates";
 
 // Planning workspaces: a plan is the "why and how"; tasks are only its final layer.
 
@@ -146,6 +147,8 @@ export function waitingOn(item: MoveItem, all: MoveItem[]) {
 
 /** Explicit actionStage wins; older tasks derive one from schedule and blockers. */
 export function stageOf(item: MoveItem, all: MoveItem[]): ActionStage {
+  const locked = !!lockReason(item, all);
+  if (locked) return "Triggered";
   const blocked = item.status === "Blocked" || !!waitingOn(item, all);
   if (item.actionStage === "Triggered" || (blocked && item.actionStage !== "Later")) return "Triggered";
   if (item.actionStage) return item.actionStage;
@@ -155,6 +158,8 @@ export function stageOf(item: MoveItem, all: MoveItem[]): ActionStage {
 }
 
 export function triggerLabel(item: MoveItem, all: MoveItem[], requirements: PlanRequirement[] = []) {
+  const locked = lockReason(item, all);
+  if (locked) return locked;
   if (item.triggerText) return item.triggerText;
   const requirement = item.triggerRequirementId && requirements.find(candidate => candidate.id === item.triggerRequirementId);
   if (requirement) return `When ${requirement.title.charAt(0).toLowerCase()}${requirement.title.slice(1)}`;
@@ -218,7 +223,8 @@ const byFocusOrder = (all: MoveItem[], plans: MovePlan[] = []) => (a: MoveItem, 
 /** Pinned tasks first, then actionable Now work, then Next work to fill empty slots. Never triggered or later work. */
 export function currentFocus(data: Pick<MoveData, "items" | "plans">, limit = 5) {
   const open = data.items.filter(item => isTask(item) && !isDone(item) && item.phase === "Pre-Move");
-  const pinned = open.filter(item => item.pinnedToFocus).slice(0, MAX_PINNED);
+  // A pinned task that is locked behind a goal waits with the rest of the locked work.
+  const pinned = open.filter(item => item.pinnedToFocus && !lockReason(item, data.items)).slice(0, MAX_PINNED);
   const actionable = (stage: ActionStage) => open.filter(item => !item.pinnedToFocus && stageOf(item, data.items) === stage);
   const order = byFocusOrder(data.items, data.plans);
   const ranked = [...actionable("Now").sort(order), ...actionable("Next").sort(order)];
@@ -268,3 +274,29 @@ export const planRecords = (planId: string, data: MoveData) => ({
   decisions: data.decisions.filter(decision => decision.planId === planId && !decision.supersededBy),
   assumptions: data.assumptions.filter(assumption => assumption.planId === planId),
 });
+
+/** A task Randy can actually do today: not done, not locked, not waiting on an event, not parked for later. */
+export function isDoableNow(item: MoveItem, all: MoveItem[]) {
+  if (!isTask(item) || isDone(item) || item.optional) return false;
+  const stage = stageOf(item, all);
+  return stage === "Now" || stage === "Next";
+}
+
+/** Every doable Pre-Move task: pinned first, then Now, then Next. */
+export function nowList(data: Pick<MoveData, "items" | "plans">) {
+  const open = data.items.filter(item => item.phase === "Pre-Move" && isDoableNow(item, data.items));
+  const order = byFocusOrder(data.items, data.plans);
+  return [...open].sort(order);
+}
+
+/** Open work (tasks, projects, goals) held back by a gate, grouped by what unlocks it. */
+export function lockedGroups(data: Pick<MoveData, "items">) {
+  const groups = new Map<string, MoveItem[]>();
+  data.items
+    .filter(item => (!item.kind || item.kind === "Action") && !isDone(item))
+    .forEach(item => {
+      const reason = lockReason(item, data.items);
+      if (reason) groups.set(reason, [...(groups.get(reason) || []), item]);
+    });
+  return [...groups.entries()].map(([reason, items]) => ({ reason, items }));
+}

@@ -64,12 +64,12 @@ test("schema 10 readiness data migrates into planning workspaces without losing 
     items:[task({id:"health-continuity",title:"Get my Vyvanse pharmacy history and a note from Dr. Dippo"}),task({id:"mine",title:"My own task"})],
   };
   const migrated=migrateMoveData(stored as never);
-  assert.equal(migrated.schemaVersion,11);
+  assert.equal(migrated.schemaVersion,12);
   assert.equal("readiness" in migrated,false);
   assert.deepEqual(migrated.plans.map(item=>item.id),["cash-flow","secure-home","physical-move","continuity"]);
   assert.equal(migrated.cashFlow.accounts[0].balance,1500);
   const health=migrated.items.find(item=>item.id==="health-continuity")!;
-  assert.equal(health.title,"Get my Vyvanse pharmacy history and a note from Dr. Dippo");
+  assert.equal(health.title,"Get my Vyvanse prescription history and a note from Dr. Dipo");
   assert.equal(planContext(health,migrated),"Medication & Essential Continuity · Gather History");
   assert.ok(migrated.items.some(item=>item.id==="mine"));
   assert.ok(migrated.items.some(item=>item.id==="mc-talk-provider"),"new plan tasks are added once");
@@ -94,7 +94,7 @@ test("stale seed text and briefly deployed placeholders become accurate values",
 
 test("schema 9 data migrates without losing items or move cash",()=>{
   const migrated=migrateMoveData({schemaVersion:9,moveFund:{current:1777} as never,items:[task({id:"kept",title:"Keep me"})]});
-  assert.equal(migrated.schemaVersion,11);
+  assert.equal(migrated.schemaVersion,12);
   assert.equal(migrated.items[0].id,"kept");
   assert.equal(migrated.cashFlow.accounts[0].balance,1777);
   assert.equal(migrated.items[0].type,"Task");
@@ -105,7 +105,8 @@ test("current focus puts pinned tasks first and never shows triggered or later w
   const focus=currentFocus(data,5);
   assert.ok(focus.length>0&&focus.length<=5);
   assert.ok(focus.every(item=>!["move-plan","lease","denver-hybrid","pm-final-quote","income-proof"].includes(item.id)));
-  assert.equal(currentFocus(togglePin(data,"packing"),5)[0].id,"packing");
+  assert.equal(currentFocus(togglePin(data,"oil-change"),5)[0].id,"oil-change");
+  assert.ok(!currentFocus(togglePin(data,"packing"),5).some(item=>item.id==="packing"),"a pinned locked task stays locked");
 });
 
 test("pinning stops at five tasks",()=>{
@@ -117,8 +118,8 @@ test("pinning stops at five tasks",()=>{
 test("action plan groups triggered work by what it is waiting for",()=>{
   const data=migrateMoveData({});
   const physical=actionPlan("physical-move",data);
-  assert.ok(physical.now.some(item=>item.id==="pm-decide-what-comes"));
-  const housing=physical.triggered.find(group=>group.trigger==="When housing is confirmed");
+  assert.ok(!physical.now.some(item=>item.id==="pm-decide-what-comes"),"locked until the lease is signed");
+  const housing=physical.triggered.find(group=>group.trigger==="After Lease signed");
   assert.ok(housing&&housing.items.some(item=>item.id==="pm-final-quote"));
   assert.ok(physical.done.some(item=>item.id==="pm-trailer-researched"));
 });
@@ -144,7 +145,7 @@ test("Google Sheets failure falls back safely to local data",async()=>{
   globalThis.fetch=async()=>{throw new Error("offline")};
   const repository=new GoogleSheetsMoveRepository("https://example.invalid");
   const data=await repository.load();
-  assert.equal(data.schemaVersion,11);
+  assert.equal(data.schemaVersion,12);
   assert.equal(repository.getSyncState().mode,"offline");
   globalThis.fetch=original;
 });

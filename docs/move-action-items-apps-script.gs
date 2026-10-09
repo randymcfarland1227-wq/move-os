@@ -10,7 +10,7 @@ const CORE_HEADERS = [
   "ID", "Title", "Phase", "Type", "Area", "Status", "Parent ID", "Due Date",
   "Notes", "Current Value", "Target Value", "Unit", "Blocker", "Importance",
   "Sort Order", "Completed At", "Plan ID", "Plan Section ID", "Route ID",
-  "Requirement ID", "Action Stage", "Trigger", "Pinned"
+  "Requirement ID", "Action Stage", "Trigger", "Pinned", "Gates"
 ];
 
 function json_(value) {

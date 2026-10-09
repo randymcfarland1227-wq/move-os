@@ -35,6 +35,8 @@ export interface MoveItem {
   notes?: string;
   parentId?: string;
   dependency?: string;
+  /** Milestone ids ("ready-to-search", "lease-signed") or item ids that must be done before this is doable. */
+  gates?: string[];
   blocker?: string;
   schedule?: Schedule;
   optional?: boolean;
