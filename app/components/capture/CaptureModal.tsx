@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { MoveAssumption, MoveDecision, PlanQuestion, WatchItem } from "../../domain/plans";
 import type { MoveData, MoveItem, WorkArea } from "../../types";
+import { GateField } from "../tasks/GateField";
 
 type CaptureKind="Something to do"|"Something I decided"|"Something I’m assuming"|"Something I need to figure out"|"Something to remember";
 const kinds:CaptureKind[]=["Something to do","Something I decided","Something I’m assuming","Something I need to figure out","Something to remember"];
@@ -12,6 +13,7 @@ export function CaptureModal({data,save,close}:{data:MoveData;save:(data:MoveDat
   const [text,setText]=useState("");
   const [kind,setKind]=useState<CaptureKind>("Something to do");
   const [planId,setPlanId]=useState("");
+  const [gates,setGates]=useState<string[]|undefined>(undefined);
   const plans=[...data.plans].sort((a,b)=>a.order-b.order);
   const submit=(event:React.FormEvent)=>{
     event.preventDefault();
@@ -19,7 +21,7 @@ export function CaptureModal({data,save,close}:{data:MoveData;save:(data:MoveDat
     const plan=planId||undefined;
     if(kind==="Something to do"){
       const section=data.planSections.filter(candidate=>candidate.planId===planId).sort((a,b)=>a.order-b.order)[0];
-      const item:MoveItem={id,title:text,description:"",phase:"Pre-Move",type:"Task",workArea:planArea[planId]||"Admin",status:"Not Started",importance:"Normal",schedule:"This Week",kind:"Action",planId:plan,planSectionId:section?.id,actionStage:"Next",createdAt:day,updatedAt:day};
+      const item:MoveItem={id,title:text,description:"",phase:"Pre-Move",type:"Task",workArea:planArea[planId]||"Admin",status:"Not Started",importance:"Normal",schedule:"This Week",kind:"Action",planId:plan,planSectionId:section?.id,actionStage:"Next",gates,createdAt:day,updatedAt:day};
       save({...data,items:[...data.items,item]});
     }else if(kind==="Something I decided"){
       const decision:MoveDecision={id,planId:plan,title:text,selected:"Decided",decidedAt:day};save({...data,decisions:[...data.decisions,decision]});
@@ -36,6 +38,7 @@ export function CaptureModal({data,save,close}:{data:MoveData;save:(data:MoveDat
     <header className="modal-head"><div><small>QUICK CAPTURE</small><h2>Get it out of your head.</h2></div><button type="button" onClick={close}>×</button></header>
     <label className="field"><span>What should Move OS remember?</span><textarea autoFocus required value={text} placeholder="I need to ask my doctor what documentation I should get before moving." onChange={event=>setText(event.target.value)}/></label>
     <fieldset><legend>What kind of thing is this?</legend>{kinds.map(value=><label key={value}><input type="radio" name="capture-kind" checked={kind===value} onChange={()=>setKind(value)}/><span>{value}</span></label>)}</fieldset>
+    {kind==="Something to do"&&<GateField gates={gates} all={data.items} onChange={setGates}/>}
     <fieldset className="capture-plans"><legend>Which plan does this belong to?</legend>{plans.map(plan=><label key={plan.id}><input type="radio" name="capture-plan" checked={planId===plan.id} onChange={()=>setPlanId(plan.id)}/><span>{plan.title}</span></label>)}<label><input type="radio" name="capture-plan" checked={planId===""} onChange={()=>setPlanId("")}/><span>Not sure</span></label></fieldset>
     <footer className="modal-actions"><span/><button className="button" type="button" onClick={close}>Cancel</button><button className="button primary" type="submit">Capture</button></footer>
   </form></div>;

@@ -6,6 +6,17 @@ Move OS is a calm, mobile-friendly external memory and decision-support system f
 - **Projects** organize multi-step work and show child-task progress.
 - **Tasks** are concrete actions that can actually be completed.
 
+## Gates: what is doable now
+
+Three goals come first and run in parallel: **Source income** (offer letter or pay stubs), **Save for the move** (progress follows the Move Fund), and **Fix credit**. Randy marks each goal reached himself. Two milestones follow from them:
+
+- **Ready to search**: all three goals reached. Unlocks apartment search, the rental application, the lease, prescription history and the Dr. Dipo consult, and the grocery and basic-needs plan.
+- **Lease signed**: the lease is done. Unlocks deciding what comes, packing, transportation, loading access, utilities, insurance, the first-72-hours kit, and the move-day plan.
+
+Every item can carry `gates` (milestone ids or item ids). The editor and Capture ask **Can I do this now?**: Now, After Ready to search, After Lease signed, or After a specific item. Locked items keep their place in Move OS with the unlock reason; Home shows them folded under **Locked for now**. The Life Hub snapshot lists only doable-now tasks (`openTasks`), counts locked ones (`lockedTasks`), and shows the three goals as featured items that Move OS refuses to check off from Life Hub.
+
+Schema 12 adds gates to saved browser data without deleting anything: missing fields are filled, only untouched default text is replaced, and the new Save for the move goal is added once.
+
 ## Run locally
 
 Requires Node.js 22.13 or newer.

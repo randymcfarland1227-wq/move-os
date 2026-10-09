@@ -1,7 +1,7 @@
 import type { MoveData, MoveItem, MovePhase, Status, SyncState, WorkArea } from "./types";
 import type { CashFlowPlan } from "./domain/cash-flow";
 import { seedData } from "./data";
-import { applyPlacement, decisionPlans, watchPlans } from "./domain/plan-seed";
+import { SUPERSEDED_TRIGGERS, applyPlacement, decisionPlans, watchPlans } from "./domain/plan-seed";
 import type { ActionStage } from "./domain/plans";
 
 export interface MoveRepository {
@@ -13,14 +13,14 @@ export interface MoveRepository {
 
 const KEY = "move-os-v1";
 const ENDPOINT_KEY = "move-os-sheet-endpoint";
-const goalIds = new Set(["credit-plan","income-evidence","lease"]);
+const goalIds = new Set(["credit-plan","income-evidence","save-for-move","lease"]);
 const projectIds = new Set(["family-plan","remote-search","chicago-hybrid","denver-hybrid","application-packet","move-plan","utilities","holiday-plan"]);
 type SheetRow={
   ID:string;Title:string;Phase:string;Type:string;Area:string;Status:string;"Parent ID"?:string;"Due Date"?:string;Notes?:string;
   "Current Value"?:number|string;"Target Value"?:number|string;Unit?:string;Blocker?:string;Importance?:string;"Sort Order"?:number|string;"Completed At"?:string;
-  "Plan ID"?:string;"Plan Section ID"?:string;"Route ID"?:string;"Requirement ID"?:string;"Action Stage"?:string;"Trigger"?:string;Pinned?:string|boolean;
+  "Plan ID"?:string;"Plan Section ID"?:string;"Route ID"?:string;"Requirement ID"?:string;"Action Stage"?:string;"Trigger"?:string;Pinned?:string|boolean;Gates?:string;
 };
-export const SCHEMA_VERSION=11;
+export const SCHEMA_VERSION=12;
 // Tasks introduced with planning workspaces; added once to older browser data.
 const PLAN_SEED_ITEM_IDS=["apply-remote-roles","check-unemployment","update-current-cash","cf-october-bills","cf-list-resale","cf-unemployment-submitted","mc-talk-provider","mc-save-contacts","mc-provider-identified","mc-med-known","pm-decide-what-comes","pm-final-quote","pm-loading-access","pm-trailer-researched","pm-truck-considered"];
 const PLAN_SEED_CONTEXT_IDS=["decision-standard-lease","assumption-chicago"];
@@ -33,6 +33,62 @@ const STALE_ITEM_TITLES:Record<string,string[]>={
   "check-unemployment":["Check the unemployment claim"],
   "health-continuity":["Get my pharmacy history and a provider note"],
 };
+// Schema 12 (gates). Old default values that may be replaced because Randy never changed them.
+const GATE_GOAL_ID="save-for-move";
+const SAVE_GOAL_CHILDREN=["update-current-cash","cf-october-bills","cf-list-resale","check-unemployment"];
+const OLD_ITEM_DEFAULTS:Record<string,Partial<Record<"title"|"description"|"relationship"|"knowledgeStatus"|"stage",string>>>={
+  "registration":{title:"Decide which state the car will be registered in before the November expiration",description:"Use the selected destination and its timing rules. Chicago leads; Denver remains a backup.",relationship:"Decision gate",knowledgeStatus:"Need information",stage:"Decide"},
+  "health-continuity":{title:"Get my Vyvanse pharmacy history and a note from Dr. Dippo"},
+  "income-evidence":{description:"Element income is no longer available. Secure a remote role or a hybrid role in the destination, with verification through an offer letter or paystubs."},
+  "credit-plan":{description:"Improve the odds of qualifying for an apartment alone. Choose concrete credit actions, track the score, and adjust from real results."},
+};
+const OLD_PROFILE_DEFAULTS:Partial<Record<keyof MoveData["profile"],unknown>>={
+  targetMoveDate:"2026-10-24",backupDate:"2026-10-31",workingMoveWindow:"End of October",
+  moveWindowReason:"Housing approval and income timing decide the real date.",
+  moveWindowNotes:"There may be flexibility, but the primary plan should not depend on it.",
+  phase:"Rebuild income · strengthen credit · compare homes",
+  currentUnlock:"Build two forms of apartment evidence in parallel: verified new income and a 625+ credit score.",
+};
+const dipo=(value?:string)=>value?.replace(/Dippo/g,"Dipo");
+
+/** Additive schema 12 upgrade: fills gates and new defaults without overwriting anything Randy changed. */
+export const applyGateUpgrade=(data:MoveData,base:MoveData):MoveData=>{
+  const seed=(id:string)=>base.items.find(item=>item.id===id);
+  const items=data.items.map(item=>{
+    const next:MoveItem={...item};
+    const fromSeed=seed(item.id);
+    if(next.gates===undefined&&fromSeed?.gates?.length) next.gates=[...fromSeed.gates];
+    if(next.parentId===undefined&&SAVE_GOAL_CHILDREN.includes(item.id)) next.parentId=GATE_GOAL_ID;
+    const old=OLD_ITEM_DEFAULTS[item.id];
+    if(old&&fromSeed){
+      (Object.keys(old) as (keyof typeof old)[]).forEach(key=>{
+        if((next as unknown as Record<string,unknown>)[key]===old[key]) (next as unknown as Record<string,unknown>)[key]=(fromSeed as unknown as Record<string,unknown>)[key];
+      });
+      if(next.dueDate===undefined&&fromSeed.dueDate) next.dueDate=fromSeed.dueDate;
+    }
+    if(next.actionStage==="Triggered"&&SUPERSEDED_TRIGGERS[item.id]&&next.triggerText===SUPERSEDED_TRIGGERS[item.id]){next.actionStage="Next";next.triggerText=undefined;}
+    next.title=dipo(next.title)||next.title;next.description=dipo(next.description)||"";next.notes=dipo(next.notes);next.blocker=dipo(next.blocker);next.triggerText=dipo(next.triggerText);
+    return next;
+  });
+  const goal=seed(GATE_GOAL_ID);
+  if(goal&&!items.some(item=>item.id===GATE_GOAL_ID)){
+    const firstChild=items.findIndex(item=>SAVE_GOAL_CHILDREN.includes(item.id));
+    items.splice(firstChild>=0?firstChild:items.length,0,{...goal,sortOrder:firstChild>=0?items[firstChild].sortOrder:items.length});
+  }
+  const profile={...data.profile};
+  (Object.keys(OLD_PROFILE_DEFAULTS) as (keyof MoveData["profile"])[]).forEach(key=>{if(profile[key]===OLD_PROFILE_DEFAULTS[key])(profile as Record<string,unknown>)[key]=base.profile[key]});
+  const assumptions=data.assumptions.map(assumption=>{
+    if(assumption.id!=="assumption-window") return assumption;
+    const seeded=base.assumptions.find(candidate=>candidate.id===assumption.id)!;
+    return {...assumption,value:assumption.value==="End of October"?seeded.value:assumption.value,notes:assumption.notes==="There may be flexibility, but the primary plan should not depend on it."?seeded.notes:assumption.notes};
+  });
+  return {
+    ...data,items,profile,assumptions,
+    planQuestions:data.planQuestions.map(question=>({...question,question:dipo(question.question)||question.question,answer:dipo(question.answer)})),
+    planGuides:data.planGuides.map(guide=>({...guide,overview:dipo(guide.overview),notes:dipo(guide.notes),instructions:guide.instructions.map(block=>({...block,title:dipo(block.title)||block.title,body:dipo(block.body)||block.body}))})),
+  };
+};
+
 const isPlaceholderUnemployment=(entry:CashFlowPlan["entries"][number])=>entry.id==="unemployment-expected"&&entry.amount===undefined&&entry.notes==="Enter the expected amount and timing once the claim is confirmed.";
 
 const normalizeStatus=(value?:string):Status=>{
@@ -65,7 +121,7 @@ const workAreaFor=(item:Partial<MoveItem>):WorkArea=>{
 
 export const normalizeItem=(raw:Partial<MoveItem>&Pick<MoveItem,"id"|"title">,index:number):MoveItem=>{
   const type=raw.type&&["Goal","Project","Task"].includes(raw.type)?raw.type:goalIds.has(raw.id)?"Goal":projectIds.has(raw.id)?"Project":"Task";
-  const title=raw.id==="credit-plan"?"Rental Credit Readiness":raw.id==="income-evidence"?"Housing-Ready Income":raw.id==="lease"?"Secure a Home":raw.title;
+  const title=raw.id==="credit-plan"?"Fix credit":raw.id==="income-evidence"?"Source income":raw.id==="save-for-move"?"Save for the move":raw.id==="lease"?"Secure a Home":raw.title;
   return {
     id:raw.id,
     title,
@@ -79,6 +135,7 @@ export const normalizeItem=(raw:Partial<MoveItem>&Pick<MoveItem,"id"|"title">,in
     notes:raw.notes,
     parentId:raw.parentId,
     dependency:raw.dependency,
+    gates:Array.isArray(raw.gates)&&raw.gates.length?raw.gates.map(String):undefined,
     blocker:raw.blocker,
     schedule:raw.schedule||(
       raw.timing==="Now"?"Now":raw.timing==="After the lease"||raw.timing==="Allowed to wait"?"Later":raw.timing==="First 72 hours"?"First 72 Hours":raw.timing==="After arrival"?"First Month":"This Week"
@@ -118,10 +175,11 @@ export const sheetRowToItem=(row:SheetRow,index:number):MoveItem=>normalizeItem(
   parentId:row["Parent ID"]||undefined,dueDate:row["Due Date"]||undefined,notes:row.Notes||undefined,blocker:row.Blocker||undefined,importance:row.Importance as MoveItem["importance"],sortOrder:Number(row["Sort Order"])||index,completedAt:row["Completed At"]||undefined,
   metric:row["Current Value"]!==undefined||row["Target Value"]!==undefined||row.Unit?{current:row["Current Value"]===""?undefined:Number(row["Current Value"]),target:row["Target Value"]===""?undefined:Number(row["Target Value"]),unit:row.Unit||undefined}:undefined,
   planId:row["Plan ID"]||undefined,planSectionId:row["Plan Section ID"]||undefined,routeId:row["Route ID"]||undefined,requirementId:row["Requirement ID"]||undefined,
+  gates:row.Gates?String(row.Gates).split(",").map(value=>value.trim()).filter(Boolean):undefined,
   actionStage:(["Now","Next","Triggered","Later"].includes(String(row["Action Stage"]))?row["Action Stage"]:undefined) as ActionStage|undefined,triggerText:row.Trigger||undefined,pinnedToFocus:row.Pinned===true||String(row.Pinned).toUpperCase()==="TRUE",
   kind:"Action",createdAt:isoDate(),updatedAt:isoDate(),
 },index);
-const itemToSheetRow=(item:MoveItem,index:number):SheetRow=>({ID:item.id,Title:item.title,Phase:item.phase,Type:item.type,Area:item.workArea,Status:item.status,"Parent ID":item.parentId||"","Due Date":item.dueDate||"",Notes:item.notes||"","Current Value":item.metric?.current??"","Target Value":item.metric?.target??"",Unit:item.metric?.unit||"",Blocker:item.blocker||"",Importance:item.importance,"Sort Order":item.sortOrder??index,"Completed At":item.completedAt||"","Plan ID":item.planId||"","Plan Section ID":item.planSectionId||"","Route ID":item.routeId||"","Requirement ID":item.requirementId||"","Action Stage":item.actionStage||"",Trigger:item.triggerText||"",Pinned:item.pinnedToFocus?"TRUE":""});
+const itemToSheetRow=(item:MoveItem,index:number):SheetRow=>({ID:item.id,Title:item.title,Phase:item.phase,Type:item.type,Area:item.workArea,Status:item.status,"Parent ID":item.parentId||"","Due Date":item.dueDate||"",Notes:item.notes||"","Current Value":item.metric?.current??"","Target Value":item.metric?.target??"",Unit:item.metric?.unit||"",Blocker:item.blocker||"",Importance:item.importance,"Sort Order":item.sortOrder??index,"Completed At":item.completedAt||"","Plan ID":item.planId||"","Plan Section ID":item.planSectionId||"","Route ID":item.routeId||"","Requirement ID":item.requirementId||"","Action Stage":item.actionStage||"",Trigger:item.triggerText||"",Pinned:item.pinnedToFocus?"TRUE":"",Gates:(item.gates||[]).join(",")});
 function isoDate(){return new Date().toISOString().slice(0,10)}
 
 type StoredMoveData=Partial<MoveData>&{readiness?:unknown;moveRoutes?:unknown};
@@ -152,7 +210,7 @@ export const migrateMoveData=(stored:StoredMoveData):MoveData=>{
   const accurateTitle=(item:MoveItem)=>STALE_ITEM_TITLES[item.id]?.includes(item.title)?{...item,title:baseById(base.items,item.id)?.title||item.title}:item;
   const {readiness:_readiness,moveRoutes:_moveRoutes,...rest}=stored;
   void _readiness;void _moveRoutes;
-  return {
+  const upgraded:MoveData={
     ...base,
     ...rest,
     schemaVersion:SCHEMA_VERSION,
@@ -178,6 +236,8 @@ export const migrateMoveData=(stored:StoredMoveData):MoveData=>{
     watches,
     cashFlow,
   };
+  const needsGates=(stored.schemaVersion??0)<12&&Array.isArray(stored.items);
+  return needsGates?applyGateUpgrade(upgraded,base):upgraded;
 };
 
 export class LocalMoveRepository implements MoveRepository {
@@ -212,7 +272,7 @@ export class GoogleSheetsMoveRepository implements MoveRepository {
         const local=await this.local.load();
         const support=local.items.filter(item=>item.kind==="Reference"||item.kind==="Reflection");
         const context=(payload as {context?:Partial<MoveData>}).context||{};
-        data=migrateMoveData({...local,...context,cashFlow:(payload as {cashFlow?:CashFlowPlan}).cashFlow||local.cashFlow,items:[...sheetRows.map(sheetRowToItem),...support.filter(item=>!sheetRows.some(row=>row.ID===item.id))]});
+        data=migrateMoveData({...local,...context,cashFlow:(payload as {cashFlow?:CashFlowPlan}).cashFlow||local.cashFlow,items:[...sheetRows.map(sheetRowToItem).map(item=>item.gates?item:{...item,gates:local.items.find(saved=>saved.id===item.id)?.gates}),...support.filter(item=>!sheetRows.some(row=>row.ID===item.id))]});
       }else data=migrateMoveData("data" in payload&&payload.data?payload.data:payload as MoveData);
       await this.local.save(data);
       this.state={mode:"sheet",label:"Move Action Items connected",lastSyncedAt:new Date().toISOString(),pending:false};

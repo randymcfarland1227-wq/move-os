@@ -97,7 +97,7 @@ export const seedQuestions: PlanQuestion[] = [
   question("physical-move",2,"q-trailer-quote","What will the trailer cost for the final route and date?"),
   question("physical-move",3,"q-trailer-space","How much trailer space do my belongings need?"),
   question("physical-move",4,"q-loading-rules","What are the new building's loading and parking rules?"),
-  question("continuity",1,"q-provider-docs","What documentation can Dr. Dippo provide?"),
+  question("continuity",1,"q-provider-docs","What documentation can Dr. Dipo provide?"),
   question("continuity",2,"q-new-provider-needs","What information will a new provider need?"),
   question("continuity",3,"q-new-provider-timing","How early should I begin the new-provider process?"),
   question("continuity",4,"q-refill-bridge","Can current refills bridge the move, and for how long?"),
@@ -131,6 +131,15 @@ export const seedGuides: PlanGuide[] = [
   ]},
 ];
 
+/** Placement values that only described a wait the "Lease signed" gate now expresses (schema 12). */
+export const SUPERSEDED_TRIGGERS: Record<string, string> = {
+  "utilities": "When the lease is signed",
+  "insurance": "When the address is confirmed",
+  "move-plan": "When housing is confirmed",
+  "pm-final-quote": "When housing is confirmed",
+  "pm-loading-access": "When housing is confirmed",
+};
+
 export interface TaskPlacement { planId:string; planSectionId?:string; routeId?:string; requirementId?:string; actionStage?:ActionStage; triggerText?:string; }
 
 /** Where each known task belongs. Applied to seed data and to migrated browser data that has no plan yet. */
@@ -143,6 +152,7 @@ export const taskPlacement: Record<string, TaskPlacement> = {
   "holiday-plan":{planId:"cash-flow",planSectionId:"cf-costs",actionStage:"Next"},
 
   "credit-plan":{planId:"secure-home",planSectionId:"sh-qualify",requirementId:"req-credit",actionStage:"Now"},
+  "save-for-move":{planId:"cash-flow",planSectionId:"cf-numbers",actionStage:"Now"},
   "income-evidence":{planId:"secure-home",planSectionId:"sh-qualify",requirementId:"req-income-evidence"},
   "remote-search":{planId:"secure-home",planSectionId:"sh-qualify",routeId:"route-remote",actionStage:"Now"},
   "apply-remote-roles":{planId:"secure-home",planSectionId:"sh-qualify",routeId:"route-remote",actionStage:"Now"},
@@ -152,7 +162,7 @@ export const taskPlacement: Record<string, TaskPlacement> = {
   "application-packet":{planId:"secure-home",planSectionId:"sh-qualify",requirementId:"req-documents",actionStage:"Next"},
   "credit-explanation":{planId:"secure-home",planSectionId:"sh-apply",actionStage:"Triggered",triggerText:"When a property asks for one"},
   "lease":{planId:"secure-home",planSectionId:"sh-apply",requirementId:"req-lease-signed",actionStage:"Triggered",triggerText:"When income evidence is ready"},
-  "utilities":{planId:"secure-home",planSectionId:"sh-apply",requirementId:"req-address",actionStage:"Triggered",triggerText:"When the lease is signed"},
+  "utilities":{planId:"secure-home",planSectionId:"sh-apply",requirementId:"req-address",actionStage:"Next"},
 
   "attic":{planId:"physical-move",planSectionId:"pm-load"},
   "pm-decide-what-comes":{planId:"physical-move",planSectionId:"pm-load",requirementId:"req-volume",actionStage:"Now"},
@@ -162,11 +172,11 @@ export const taskPlacement: Record<string, TaskPlacement> = {
   "md-emissions":{planId:"physical-move",planSectionId:"pm-vehicle"},
   "oil-change":{planId:"physical-move",planSectionId:"pm-vehicle",actionStage:"Next"},
   "registration":{planId:"physical-move",planSectionId:"pm-vehicle",actionStage:"Next"},
-  "insurance":{planId:"physical-move",planSectionId:"pm-vehicle",actionStage:"Triggered",triggerText:"When the address is confirmed"},
+  "insurance":{planId:"physical-move",planSectionId:"pm-vehicle",actionStage:"Next"},
   "cosmetic-car":{planId:"physical-move",planSectionId:"pm-vehicle",actionStage:"Later"},
-  "move-plan":{planId:"physical-move",planSectionId:"pm-book",routeId:"route-trailer",requirementId:"req-transport-method",actionStage:"Triggered",triggerText:"When housing is confirmed"},
-  "pm-final-quote":{planId:"physical-move",planSectionId:"pm-book",actionStage:"Triggered",triggerText:"When housing is confirmed"},
-  "pm-loading-access":{planId:"physical-move",planSectionId:"pm-book",requirementId:"req-loading",actionStage:"Triggered",triggerText:"When housing is confirmed"},
+  "move-plan":{planId:"physical-move",planSectionId:"pm-book",routeId:"route-trailer",requirementId:"req-transport-method",actionStage:"Next"},
+  "pm-final-quote":{planId:"physical-move",planSectionId:"pm-book",actionStage:"Next"},
+  "pm-loading-access":{planId:"physical-move",planSectionId:"pm-book",requirementId:"req-loading",actionStage:"Next"},
   "move-day-plan":{planId:"physical-move",planSectionId:"pm-day"},
   "condition-proof":{planId:"physical-move",planSectionId:"pm-day"},
 

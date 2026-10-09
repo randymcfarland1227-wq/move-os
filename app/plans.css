@@ -162,3 +162,36 @@
   .route-list-plan.compact{grid-template-columns:1fr}
   .journey ol>li{padding-left:40px}
 }
+
+/* Gates: three goals first, then Now, then locked work folded away */
+.gate-goal-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.gate-goal{display:flex;flex-direction:column;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:14px}
+.gate-goal.reached{border-color:color-mix(in srgb,var(--teal) 45%,var(--line));background:var(--teal-soft)}
+.gate-goal-copy{display:grid;gap:4px;border:0;background:transparent;padding:0;text-align:left;color:var(--ink)}
+.gate-goal-copy b{font-size:17px;letter-spacing:-.01em}
+.gate-goal-copy small{color:var(--muted);font-size:12.5px;line-height:1.4}
+.gate-goal-kicker{color:var(--teal-deep);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gate-bar{display:block;height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:4px}
+.gate-bar i{display:block;height:100%;background:var(--teal);border-radius:inherit}
+.gate-goal-toggle{align-self:flex-start;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--teal-deep);padding:5px 11px;font-size:12px;font-weight:750}
+.gate-goal-toggle:hover{border-color:var(--teal)}
+.milestones{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 0;padding:0;list-style:none;font-size:13px}
+.milestones li{display:flex;gap:8px;align-items:baseline;color:var(--muted)}
+.milestones li b{color:var(--ink)}
+.milestones li::before{content:"○";color:var(--faint)}
+.milestones li.met::before{content:"●";color:var(--teal)}
+.locked-list>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;list-style:none}
+.locked-list>summary::-webkit-details-marker{display:none}
+.locked-list>summary h2{margin:0}
+.locked-list>summary p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.locked-list>summary>span{border-radius:999px;background:var(--surface-2);color:var(--muted);padding:4px 10px;font-size:12px;font-weight:750;white-space:nowrap}
+.locked-list[open]>summary>span::after{content:" ▾"}
+.locked-list:not([open])>summary>span::after{content:" ▸"}
+.locked-group{margin-top:14px}
+.locked-group h3{margin:0 0 6px;color:var(--teal-deep);font-size:13px;letter-spacing:.01em}
+.locked-group ul{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.locked-group button{display:flex;align-items:baseline;gap:8px;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;padding:9px 2px;text-align:left;color:var(--muted);font-size:13.5px}
+.locked-group button span{font-size:11px;opacity:.7}
+.locked-group button b{font-weight:600;color:var(--ink)}
+.locked-group button small{margin-left:auto;color:var(--faint);font-size:11px}
+@media(max-width:760px){.gate-goal-list{grid-template-columns:1fr}}

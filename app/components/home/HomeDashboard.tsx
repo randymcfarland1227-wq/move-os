@@ -2,7 +2,8 @@
 
 import type { MoveData, MoveItem } from "../../types";
 import { calculateCashFlow } from "../../domain/cash-flow";
-import { CurrentFocus } from "./CurrentFocus";
+import { GateGoals } from "./GateGoals";
+import { LockedList, NowList } from "./NowList";
 import { BigPlanOverview } from "./BigPlanOverview";
 import { RecentProgress } from "./RecentProgress";
 
@@ -31,11 +32,13 @@ export function HomeDashboard({data,update,editItem,openPlan,openPreMove,openCas
       <div><p className="eyebrow">Randy’s Move</p><h1>{lead||"Chicago leading"}</h1>{others.length>0&&<p className="route-line">{others.join(" · ")}</p>}</div>
       {confirmed
         ?<div className="window-note confirmed"><span>Move Day</span><b>{longDate(profile.confirmedMoveDate!)}</b><small>{daysUntil(profile.confirmedMoveDate!)} days away</small></div>
-        :<div className="window-note"><span>Working move window</span><b>{profile.workingMoveWindow||"End of October"}</b><small>Working target — not confirmed</small></div>}
+        :<div className="window-note"><span>Working move window</span><b>{profile.workingMoveWindow||"After the goals"}</b><small>No fixed date yet</small></div>}
     </header>
     <aside className="north-star"><span>Why I’m moving</span><p>{profile.reason}</p></aside>
 
-    <CurrentFocus data={data} update={update} edit={editItem} openPreMove={openPreMove}/>
+    <GateGoals data={data} update={update} edit={editItem}/>
+    <NowList data={data} update={update} edit={editItem} openPreMove={openPreMove}/>
+    <LockedList data={data} edit={editItem}/>
     <BigPlanOverview data={data} openPlan={openPlan}/>
     <RecentProgress data={data} edit={editItem}/>
 

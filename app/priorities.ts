@@ -1,4 +1,5 @@
 import type { MoveItem } from "./types";
+import { lockReason } from "./domain/gates";
 
 export const isDone=(item:MoveItem)=>item.status==="Done";
 export const isAction=(item:MoveItem)=>(!item.kind||item.kind==="Action")&&item.type==="Task";
@@ -6,6 +7,8 @@ export const isWorkItem=(item:MoveItem)=>!item.kind||item.kind==="Action";
 
 export const blocker=(item:MoveItem,all:MoveItem[])=>{
   if(item.blocker) return item.blocker;
+  const locked=lockReason(item,all);
+  if(locked) return locked;
   if(!item.dependency) return undefined;
   const prerequisite=all.find(candidate=>candidate.id===item.dependency);
   return prerequisite&&!isDone(prerequisite)?`Waiting for ${prerequisite.title}`:undefined;
